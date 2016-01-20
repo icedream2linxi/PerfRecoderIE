@@ -21,7 +21,8 @@
 						}
 
 						var usage = PerfRecoder.getProcessCPUUsage();
-						var usedMemory = PerfRecoder.getProcessMemoryInfo();
+						var info = JSON.parse(PerfRecoder.getProcessMemoryInfo());
+						var usedMemory = info.pagefileUsage;
 						usedMemory /= 1024 * 1024;
 						series[0].addPoint([time, usedMemory], true, true);
 						series[1].addPoint([time, usage], true, true);

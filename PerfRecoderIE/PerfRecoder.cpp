@@ -9,6 +9,7 @@
 #include <comutil.h>
 #include <shlobj.h>
 #include <TlHelp32.h>
+#include <psapi.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 using namespace std;
@@ -138,7 +139,7 @@ void CPerfRecoder::run()
 			<< "GPU #" << i << " DedicatedVideoMemoryEvictionsSize,"
 			<< "GPU #" << i << " DedicatedVideoMemoryEvictionCount,";
 	}
-	fout << "CPU,Memory" << endl;
+	fout << "CPU,WorkingSetSize,PagefileUsage" << endl;
 
 	clock_t prevClock = clock();
 	while (!m_stop)
@@ -169,14 +170,16 @@ void CPerfRecoder::run()
 		}
 
 		if (m_processId == 0)
-			fout << 0 << "," << 0 << endl;
+			fout << 0 << "," << 0 << "," << 0 << endl;
 		else
 		{
 			//FLOAT cpuUsage = getProcessCPUUsage();
 			if (m_cu != nullptr)
 				m_cpuUsage = m_cu->getUsage();
+			MemoryInfo info = getProcessMemoryInfo();
 			fout << m_cpuUsage << ","
-				<< 0 << endl;
+				<< info.workingSetSize << ","
+				<< info.pagefileUsage << endl;
 		}
 	}
 }
@@ -335,7 +338,6 @@ STDMETHODIMP CPerfRecoder::getAllProcessInfo(BSTR* info)
 	};
 	vector<Info> infos;
 
-	StringBuffer sb;
 	do {
 		Info info;
 		info.pid = pe32.th32ProcessID;
@@ -347,6 +349,7 @@ STDMETHODIMP CPerfRecoder::getAllProcessInfo(BSTR* info)
 
 	sort(infos.begin(), infos.end());
 
+	StringBuffer sb;
 	Writer<StringBuffer> writer(sb);
 	writer.StartArray();
 	for (size_t i = 0; i < infos.size(); ++i)
@@ -392,7 +395,7 @@ float CPerfRecoder::getProcessCPUUsage()
 	FILETIME kernelTime, userTime, idleTime;
 	GetSystemTimes(&idleTime, &kernelTime, &userTime);
 
-	HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, m_processId);
+	HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, m_processId);
 	FILETIME processCreateTime, processExitTime, processKernelTime, processUserTime;
 	GetProcessTimes(hProcess, &processCreateTime, &processExitTime,
 		&processKernelTime, &processUserTime);
@@ -413,8 +416,38 @@ float CPerfRecoder::getProcessCPUUsage()
 	return m_cpuUsage;
 }
 
-STDMETHODIMP CPerfRecoder::getProcessMemoryInfo(ULONG* usage)
+STDMETHODIMP CPerfRecoder::getProcessMemoryInfo(BSTR* usage)
 {
-	*usage = 0;
+	MemoryInfo info = getProcessMemoryInfo();
+
+	StringBuffer sb;
+	Writer<StringBuffer> writer(sb);
+	writer.StartObject();
+	
+	writer.Key("workingSetSize");
+	writer.Uint64(info.workingSetSize);
+
+	writer.Key("pagefileUsage");
+	writer.Uint64(info.pagefileUsage);
+
+	writer.EndObject();
+
+	*usage = _com_util::ConvertStringToBSTR(sb.GetString());
 	return S_OK;
 }
+
+CPerfRecoder::MemoryInfo CPerfRecoder::getProcessMemoryInfo()
+{
+	PROCESS_MEMORY_COUNTERS_EX mem;
+
+	HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, m_processId);
+	GetProcessMemoryInfo(hProcess, (PROCESS_MEMORY_COUNTERS*)&mem, sizeof(PROCESS_MEMORY_COUNTERS_EX));
+
+	MemoryInfo info;
+	info.workingSetSize = mem.WorkingSetSize;
+	info.pagefileUsage = mem.PagefileUsage;
+
+	CloseHandle(hProcess);
+	return info;
+}
+

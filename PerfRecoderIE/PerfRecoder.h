@@ -71,6 +71,12 @@ END_CONNECTION_POINT_MAP()
 	void run();
 	NvAPI_Status getGPUMemoryInfo(NvPhysicalGpuHandle hPhysicalHandle, NV_DISPLAY_DRIVER_MEMORY_INFO &memoryInfo);
 	float getProcessCPUUsage();
+	struct MemoryInfo
+	{
+		SIZE_T workingSetSize;
+		SIZE_T pagefileUsage;
+	};
+	MemoryInfo getProcessMemoryInfo();
 
 public:
 
@@ -83,7 +89,7 @@ public:
 	STDMETHOD(getAllProcessInfo)(BSTR* info);
 	STDMETHOD(monitoringProcess)(ULONG pid);
 	STDMETHOD(getProcessCPUUsage)(FLOAT* usage);
-	STDMETHOD(getProcessMemoryInfo)(ULONG* usage);
+	STDMETHOD(getProcessMemoryInfo)(BSTR* usage);
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(PerfRecoder), CPerfRecoder)

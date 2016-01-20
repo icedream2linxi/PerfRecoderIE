@@ -4,7 +4,7 @@
 
 
  /* File created by MIDL compiler version 8.00.0603 */
-/* at Wed Jan 20 16:05:14 2016
+/* at Wed Jan 20 18:06:06 2016
  */
 /* Compiler settings for PerfRecoderIE.idl:
     Oicf, W1, Zp8, env=Win32 (32b run), target_arch=X86 8.00.0603 
@@ -120,7 +120,7 @@ EXTERN_C const IID IID_IPerfRecoder;
             /* [retval][out] */ FLOAT *usage) = 0;
         
         virtual /* [id] */ HRESULT STDMETHODCALLTYPE getProcessMemoryInfo( 
-            /* [retval][out] */ ULONG *usage) = 0;
+            /* [retval][out] */ BSTR *usage) = 0;
         
     };
     
@@ -213,7 +213,7 @@ EXTERN_C const IID IID_IPerfRecoder;
         
         /* [id] */ HRESULT ( STDMETHODCALLTYPE *getProcessMemoryInfo )( 
             IPerfRecoder * This,
-            /* [retval][out] */ ULONG *usage);
+            /* [retval][out] */ BSTR *usage);
         
         END_INTERFACE
     } IPerfRecoderVtbl;
