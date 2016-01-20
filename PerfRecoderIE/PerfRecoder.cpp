@@ -13,6 +13,8 @@ typedef NvAPI_Status(*NvAPI_GPU_GetUsages_t)(NvPhysicalGpuHandle hPhysicalGpu, u
 nvapi_QueryInterface_t nvapi_QueryInterface = NULL;
 NvAPI_GPU_GetUsages_t NvAPI_GPU_GetUsages = NULL;
 
+#define NVAPI_MAX_USAGES_PER_GPU  34
+
 CPerfRecoder::CPerfRecoder()
 	: m_physicalGpuCount(0)
 {
@@ -53,8 +55,8 @@ HRESULT CPerfRecoder::FinalConstruct()
 		L"nvapi.dll"
 #endif
 		);
-	nvapi_QueryInterface_t nvapi_QueryInterface = (nvapi_QueryInterface_t)GetProcAddress(hDll, "nvapi_QueryInterface");
-	NvAPI_GPU_GetUsages_t NvAPI_GPU_GetUsages = (NvAPI_GPU_GetUsages_t)nvapi_QueryInterface(0x189A1FDF);
+	nvapi_QueryInterface = (nvapi_QueryInterface_t)GetProcAddress(hDll, "nvapi_QueryInterface");
+	NvAPI_GPU_GetUsages = (NvAPI_GPU_GetUsages_t)nvapi_QueryInterface(0x189A1FDF);
 
 	return S_OK;
 }
@@ -120,8 +122,10 @@ STDMETHODIMP CPerfRecoder::getGPUFullName(LONG id, BSTR* name)
 
 STDMETHODIMP CPerfRecoder::getGPUUsages(LONG id, LONG* usages)
 {
-	// TODO: Add your implementation code here
-
+	unsigned int gpuUsages[NVAPI_MAX_USAGES_PER_GPU] = { 0 };
+	gpuUsages[0] = (NVAPI_MAX_USAGES_PER_GPU * 4) | 0x10000;
+	NvAPI_GPU_GetUsages(m_hPhysicalGpu[id], gpuUsages);
+	*usages = gpuUsages[3];
 	return S_OK;
 }
 
