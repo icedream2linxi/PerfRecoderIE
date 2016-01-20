@@ -16,8 +16,10 @@
 						usedMemory /= 1024;
 						series[0].addPoint([time, usedMemory], true, true);
 						series[1].addPoint([time, usage], true, true);
-						series[0].removePoint(0);
-						series[1].removePoint(0);
+						if (series[0].data.length > 50)
+							series[0].removePoint(0);
+						if (series[1].data.length > 50)
+							series[1].removePoint(0);
 					}, interval);
 				}
 			}

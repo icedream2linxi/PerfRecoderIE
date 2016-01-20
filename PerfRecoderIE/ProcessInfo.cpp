@@ -693,6 +693,8 @@ float ProcessCpuUsage::getUsage()
 	PhUpdateDelta(&CpuKernelDelta, process->KernelTime.QuadPart);
 	PhUpdateDelta(&CpuUserDelta, process->UserTime.QuadPart);
 
+	PhFree(processes);
+
 	FLOAT newCpuUsage;
 	FLOAT kernelCpuUsage;
 	FLOAT userCpuUsage;
