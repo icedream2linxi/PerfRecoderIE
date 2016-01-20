@@ -17,7 +17,7 @@
 				var PerfRecoder = document.getElementById('PerfRecoder');
 				var gpuIds = JSON.parse(PerfRecoder.getPhysicalGPUIds());
 				var gpuId = gpuIds[0];
-				var interval = 800;
+				var interval = 1000;
 
 				$('#gpuMem').highcharts({
 					chart: {
@@ -43,7 +43,7 @@
 					},
 					xAxis: {
 						type: 'datetime',
-						tickPixelInterval: 150
+						tickPixelInterval: 1500
 					},
 					yAxis: [{
 						title: {

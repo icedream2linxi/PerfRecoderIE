@@ -3,6 +3,7 @@
 #pragma once
 #include "resource.h"       // main symbols
 
+#include <thread>
 #include <nvapi.h>
 
 #include "PerfRecoderIE_i.h"
@@ -31,6 +32,8 @@ class ATL_NO_VTABLE CPerfRecoder :
 private:
 	NvPhysicalGpuHandle m_hPhysicalGpu[NVAPI_MAX_PHYSICAL_GPUS];
 	NvU32 m_physicalGpuCount;
+	std::thread m_thread;
+	bool m_stop;
 public:
 	CPerfRecoder();
 
@@ -59,6 +62,8 @@ END_CONNECTION_POINT_MAP()
 	void FinalRelease();
 	void SetErrMsg(BSTR errMsg);
 	void SetNvErr(NvAPI_Status status);
+	void run();
+	NvAPI_Status getGPUMemoryInfo(NvPhysicalGpuHandle hPhysicalHandle, NV_DISPLAY_DRIVER_MEMORY_INFO &memoryInfo);
 
 public:
 
