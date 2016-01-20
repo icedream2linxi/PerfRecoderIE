@@ -28,6 +28,8 @@
 				}
 				processId = parseInt(processId, 10);
 				PerfRecoder.monitoringProcess(processId);
+
+				$('#processChart').highcharts().setTitle({ text: $('option[value=' + $('#process').val() + ']').text() });
 			}
 		</script>
 		<script type="text/javascript" src="./js/gpu.js"></script>
