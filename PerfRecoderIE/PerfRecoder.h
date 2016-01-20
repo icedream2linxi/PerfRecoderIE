@@ -28,6 +28,7 @@ class ATL_NO_VTABLE CPerfRecoder :
 	public IConnectionPointContainerImpl<CPerfRecoder>,
 	public CProxy_IPerfRecoderEvents<CPerfRecoder>,
 	public IObjectWithSiteImpl<CPerfRecoder>,
+	public IObjectSafetyImpl<CPerfRecoder, INTERFACESAFE_FOR_UNTRUSTED_CALLER | INTERFACESAFE_FOR_UNTRUSTED_DATA>,
 	public IDispatchImpl<IPerfRecoder, &IID_IPerfRecoder, &LIBID_PerfRecoderIELib, /*wMajor =*/ 1, /*wMinor =*/ 0>
 {
 private:
@@ -52,6 +53,7 @@ BEGIN_COM_MAP(CPerfRecoder)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
 	COM_INTERFACE_ENTRY(IConnectionPointContainer)
 	COM_INTERFACE_ENTRY(IObjectWithSite)
+	COM_INTERFACE_ENTRY_IID(IID_IObjectSafety, IObjectSafety)
 END_COM_MAP()
 
 BEGIN_CONNECTION_POINT_MAP(CPerfRecoder)

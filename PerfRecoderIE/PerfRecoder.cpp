@@ -103,6 +103,17 @@ void CPerfRecoder::SetNvErr(NvAPI_Status status)
 	SetErrMsg(_com_util::ConvertStringToBSTR(szErrMsg));
 }
 
+wchar_t *GetCurrTime()
+{
+	auto currTime = time(NULL);
+	tm currTm;
+	localtime_s(&currTm, &currTime);
+
+	static wchar_t buff[128] = { 0 };
+	wcsftime(buff, 128, L"%Y-%m-%d %H-%M-%S", &currTm);
+	return buff;
+}
+
 void CPerfRecoder::run()
 {
 	if (m_physicalGpuCount == 0)
@@ -117,7 +128,9 @@ void CPerfRecoder::run()
 
 	wchar_t filepath[MAX_PATH];
 	SHGetSpecialFolderPath(0, filepath, CSIDL_DESKTOPDIRECTORY, 0);
-	wcscat_s(filepath, L"\\perf.csv");
+	wcscat_s(filepath, L"\\perf ");
+	wcscat_s(filepath, GetCurrTime());
+	wcscat_s(filepath, L".csv");
 	ofstream fout(filepath);
 
 	for (NvU32 i = 0; i < m_physicalGpuCount; ++i)
