@@ -17,8 +17,12 @@ import "ocidl.idl";
 interface IPerfRecoder : IDispatch{
 	[id(1)] HRESULT getPhysicalGPUIds([out, retval] BSTR* ids);
 	[id(2)] HRESULT getGPUFullName([in] LONG id, [out, retval] BSTR* name);
-	[id(3)] HRESULT getGPUUsages([in] LONG id, [out, retval] LONG* usages);
+	[id(3)] HRESULT getGPUUsage([in] LONG id, [out, retval] LONG* usages);
 	[id(4)] HRESULT getGPUMemoryInfo([in] LONG id, [out, retval] BSTR* info);
+	[id(5)] HRESULT getAllProcessInfo([out, retval] BSTR* info);
+	[id(6)] HRESULT monitoringProcess([in] ULONG pid);
+	[id(7)] HRESULT getProcessCPUUsage([out, retval] FLOAT* usage);
+	[id(8)] HRESULT getProcessMemoryInfo([out, retval] ULONG* usage);
 };
 [
 	uuid(3AA47554-0D3F-4399-9138-5E4506951DF6),

@@ -5,10 +5,11 @@
 
 #include <thread>
 #include <nvapi.h>
+#include <memory>
 
 #include "PerfRecoderIE_i.h"
 #include "_IPerfRecoderEvents_CP.h"
-
+#include "ProcessInfo.hpp"
 
 
 #if defined(_WIN32_WCE) && !defined(_CE_DCOM) && !defined(_CE_ALLOW_SINGLE_THREADED_OBJECTS_IN_MTA)
@@ -34,6 +35,11 @@ private:
 	NvU32 m_physicalGpuCount;
 	std::thread m_thread;
 	bool m_stop;
+	DWORD m_processId;
+	ULONGLONG m_sysNoIdleTime;
+	ULONGLONG m_processNoIdleTime;
+	float m_cpuUsage;
+	std::shared_ptr<ProcessCpuUsage> m_cu;
 public:
 	CPerfRecoder();
 
@@ -64,6 +70,7 @@ END_CONNECTION_POINT_MAP()
 	void SetNvErr(NvAPI_Status status);
 	void run();
 	NvAPI_Status getGPUMemoryInfo(NvPhysicalGpuHandle hPhysicalHandle, NV_DISPLAY_DRIVER_MEMORY_INFO &memoryInfo);
+	float getProcessCPUUsage();
 
 public:
 
@@ -71,8 +78,12 @@ public:
 
 	STDMETHOD(getPhysicalGPUIds)(BSTR* ids);
 	STDMETHOD(getGPUFullName)(LONG id, BSTR* name);
-	STDMETHOD(getGPUUsages)(LONG id, LONG* usages);
+	STDMETHOD(getGPUUsage)(LONG id, LONG* usages);
 	STDMETHOD(getGPUMemoryInfo)(LONG id, BSTR* info);
+	STDMETHOD(getAllProcessInfo)(BSTR* info);
+	STDMETHOD(monitoringProcess)(ULONG pid);
+	STDMETHOD(getProcessCPUUsage)(FLOAT* usage);
+	STDMETHOD(getProcessMemoryInfo)(ULONG* usage);
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(PerfRecoder), CPerfRecoder)

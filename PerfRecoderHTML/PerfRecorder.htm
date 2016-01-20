@@ -1,0 +1,36 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+		  "http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>PerfRecorder</title>
+		<script type="text/javascript" src="./js/jquery-1.11.3.js"></script>
+		<script type="text/javascript" src="./js/highcharts.js"></script>
+	</head>
+	<body>
+		<object id="PerfRecoder" classid="CLSID:8F1B6710-FCCD-4DC8-B24F-26294818D793"></object>
+		<div id="gpuMem"></div>
+		<label>进程 : </label><select id="process"></select>
+		<input type="button" value="监控" onclick="ProcessMonitoring()" />
+		<div id="processChart"></div>
+
+		<script type="text/javascript">
+			var interval = 1000;
+			var PerfRecoder = document.getElementById('PerfRecoder');
+			var processId = 0;
+
+			function ProcessMonitoring() {
+				processId = $('#process').val();
+				if (processId == null || processId == 0 || processId == '') {
+					processId = 0;
+					return;
+				}
+				processId = parseInt(processId, 10);
+				PerfRecoder.monitoringProcess(processId);
+			}
+		</script>
+		<script type="text/javascript" src="./js/gpu.js"></script>
+		<script type="text/javascript" src="./js/process.js"></script>
+	</body>
+</html>

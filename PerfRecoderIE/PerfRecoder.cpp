@@ -3,8 +3,12 @@
 #include "stdafx.h"
 #include "PerfRecoder.h"
 #include <fstream>
+#include <vector>
+#include <string>
+#include <algorithm>
 #include <comutil.h>
 #include <shlobj.h>
+#include <TlHelp32.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 using namespace std;
@@ -18,9 +22,15 @@ NvAPI_GPU_GetUsages_t NvAPI_GPU_GetUsages = NULL;
 
 #define NVAPI_MAX_USAGES_PER_GPU  34
 
+#define TOULL(ft) (*(ULONGLONG*)(void*)&ft)
+
 CPerfRecoder::CPerfRecoder()
 	: m_physicalGpuCount(0)
 	, m_stop(false)
+	, m_processId(0)
+	, m_sysNoIdleTime(0)
+	, m_processNoIdleTime(0)
+	, m_cpuUsage(0)
 {
 	memset(m_hPhysicalGpu, 0, sizeof(m_hPhysicalGpu));
 }
@@ -61,6 +71,8 @@ HRESULT CPerfRecoder::FinalConstruct()
 		);
 	nvapi_QueryInterface = (nvapi_QueryInterface_t)GetProcAddress(hDll, "nvapi_QueryInterface");
 	NvAPI_GPU_GetUsages = (NvAPI_GPU_GetUsages_t)nvapi_QueryInterface(0x189A1FDF);
+
+	PhpInit();
 
 	m_thread = std::thread(&CPerfRecoder::run, this);
 
@@ -141,12 +153,12 @@ void CPerfRecoder::run()
 		for (NvU32 i = 0; i < m_physicalGpuCount; ++i)
 		{
 			NvPhysicalGpuHandle hPhysicalHandle = m_hPhysicalGpu[i];
-			LONG usage = 0;
-			getGPUUsages(i, &usage);
+			LONG gpuUsage = 0;
+			getGPUUsage(i, &gpuUsage);
 			NV_DISPLAY_DRIVER_MEMORY_INFO memoryInfo = { 0 };
 			res = getGPUMemoryInfo(hPhysicalHandle, memoryInfo);
 
-			fout << usage << ","
+			fout << gpuUsage << ","
 				<< memoryInfo.dedicatedVideoMemory << ","
 				<< memoryInfo.availableDedicatedVideoMemory << ","
 				<< memoryInfo.systemVideoMemory << ","
@@ -155,7 +167,17 @@ void CPerfRecoder::run()
 				<< memoryInfo.dedicatedVideoMemoryEvictionsSize << ","
 				<< memoryInfo.dedicatedVideoMemoryEvictionCount << ",";
 		}
-		fout << 0 << "," << 0 << endl;
+
+		if (m_processId == 0)
+			fout << 0 << "," << 0 << endl;
+		else
+		{
+			//FLOAT cpuUsage = getProcessCPUUsage();
+			if (m_cu != nullptr)
+				m_cpuUsage = m_cu->getUsage();
+			fout << m_cpuUsage << ","
+				<< 0 << endl;
+		}
 	}
 }
 
@@ -196,7 +218,7 @@ STDMETHODIMP CPerfRecoder::getGPUFullName(LONG id, BSTR* name)
 }
 
 
-STDMETHODIMP CPerfRecoder::getGPUUsages(LONG id, LONG* usages)
+STDMETHODIMP CPerfRecoder::getGPUUsage(LONG id, LONG* usages)
 {
 	unsigned int gpuUsages[NVAPI_MAX_USAGES_PER_GPU] = { 0 };
 	gpuUsages[0] = (NVAPI_MAX_USAGES_PER_GPU * 4) | 0x10000;
@@ -284,4 +306,115 @@ NvAPI_Status CPerfRecoder::getGPUMemoryInfo(NvPhysicalGpuHandle hPhysicalHandle,
 	}
 
 	return res;
+}
+
+
+STDMETHODIMP CPerfRecoder::getAllProcessInfo(BSTR* info)
+{
+	HANDLE hProcessSnap = NULL;
+	hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (hProcessSnap == INVALID_HANDLE_VALUE)
+		return E_FAIL;
+	PROCESSENTRY32 pe32 = { 0 };
+	pe32.dwSize = sizeof(pe32);
+	if (!Process32First(hProcessSnap, &pe32))
+	{
+		CloseHandle(hProcessSnap);
+		return E_FAIL;
+	}
+
+	struct Info
+	{
+		DWORD pid;
+		DWORD ppid;
+		string name;
+		bool operator<(const Info &oth) const {
+			//return name < oth.name;
+			return _stricmp(name.c_str(), oth.name.c_str()) < 0;
+		}
+	};
+	vector<Info> infos;
+
+	StringBuffer sb;
+	do {
+		Info info;
+		info.pid = pe32.th32ProcessID;
+		info.ppid = pe32.th32ParentProcessID;
+		info.name = static_cast<char*>(CW2A(pe32.szExeFile));
+		infos.push_back(info);
+	} while (Process32Next(hProcessSnap, &pe32));
+	CloseHandle(hProcessSnap);
+
+	sort(infos.begin(), infos.end());
+
+	Writer<StringBuffer> writer(sb);
+	writer.StartArray();
+	for (size_t i = 0; i < infos.size(); ++i)
+	{
+		writer.StartObject();
+
+		writer.Key("pid");
+		writer.Uint(infos[i].pid);
+
+		writer.Key("ppid");
+		writer.Uint(infos[i].ppid);
+
+		writer.Key("name");
+		writer.String(infos[i].name.c_str());
+
+		writer.EndObject();
+	}
+	writer.EndArray();
+	*info = _com_util::ConvertStringToBSTR(sb.GetString());
+	return S_OK;
+}
+
+
+STDMETHODIMP CPerfRecoder::monitoringProcess(ULONG pid)
+{
+	m_processId = pid;
+	m_sysNoIdleTime = 0;
+	m_processNoIdleTime = 0;
+	m_cu.reset(new ProcessCpuUsage(pid));
+	return S_OK;
+}
+
+
+STDMETHODIMP CPerfRecoder::getProcessCPUUsage(FLOAT* usage)
+{
+	*usage = m_cpuUsage;
+	return S_OK;
+}
+
+
+float CPerfRecoder::getProcessCPUUsage()
+{
+	FILETIME kernelTime, userTime, idleTime;
+	GetSystemTimes(&idleTime, &kernelTime, &userTime);
+
+	HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, m_processId);
+	FILETIME processCreateTime, processExitTime, processKernelTime, processUserTime;
+	GetProcessTimes(hProcess, &processCreateTime, &processExitTime,
+		&processKernelTime, &processUserTime);
+	CloseHandle(hProcess);
+
+	ULONGLONG totalTime = TOULL(kernelTime) + TOULL(userTime) + TOULL(idleTime);
+	ULONGLONG processTotalTime = TOULL(processKernelTime) + TOULL(processUserTime);
+	if (m_sysNoIdleTime == 0)
+	{
+		m_sysNoIdleTime = totalTime;
+		m_processNoIdleTime = processTotalTime;
+		return 0;
+	}
+
+	m_cpuUsage = (processTotalTime - m_processNoIdleTime) * 100.0 / (totalTime - m_sysNoIdleTime);
+	m_sysNoIdleTime = totalTime;
+	m_processNoIdleTime = processTotalTime;
+	return m_cpuUsage;
+}
+
+STDMETHODIMP CPerfRecoder::getProcessMemoryInfo(ULONG* usage)
+{
+	*usage = 0;
+	return S_OK;
 }

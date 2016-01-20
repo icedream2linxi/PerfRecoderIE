@@ -4,7 +4,7 @@
 
 
  /* File created by MIDL compiler version 8.00.0603 */
-/* at Wed Jan 20 10:16:38 2016
+/* at Wed Jan 20 16:05:14 2016
  */
 /* Compiler settings for PerfRecoderIE.idl:
     Oicf, W1, Zp8, env=Win32 (32b run), target_arch=X86 8.00.0603 
@@ -102,13 +102,25 @@ EXTERN_C const IID IID_IPerfRecoder;
             /* [in] */ LONG id,
             /* [retval][out] */ BSTR *name) = 0;
         
-        virtual /* [id] */ HRESULT STDMETHODCALLTYPE getGPUUsages( 
+        virtual /* [id] */ HRESULT STDMETHODCALLTYPE getGPUUsage( 
             /* [in] */ LONG id,
             /* [retval][out] */ LONG *usages) = 0;
         
         virtual /* [id] */ HRESULT STDMETHODCALLTYPE getGPUMemoryInfo( 
             /* [in] */ LONG id,
             /* [retval][out] */ BSTR *info) = 0;
+        
+        virtual /* [id] */ HRESULT STDMETHODCALLTYPE getAllProcessInfo( 
+            /* [retval][out] */ BSTR *info) = 0;
+        
+        virtual /* [id] */ HRESULT STDMETHODCALLTYPE monitoringProcess( 
+            /* [in] */ ULONG pid) = 0;
+        
+        virtual /* [id] */ HRESULT STDMETHODCALLTYPE getProcessCPUUsage( 
+            /* [retval][out] */ FLOAT *usage) = 0;
+        
+        virtual /* [id] */ HRESULT STDMETHODCALLTYPE getProcessMemoryInfo( 
+            /* [retval][out] */ ULONG *usage) = 0;
         
     };
     
@@ -177,7 +189,7 @@ EXTERN_C const IID IID_IPerfRecoder;
             /* [in] */ LONG id,
             /* [retval][out] */ BSTR *name);
         
-        /* [id] */ HRESULT ( STDMETHODCALLTYPE *getGPUUsages )( 
+        /* [id] */ HRESULT ( STDMETHODCALLTYPE *getGPUUsage )( 
             IPerfRecoder * This,
             /* [in] */ LONG id,
             /* [retval][out] */ LONG *usages);
@@ -186,6 +198,22 @@ EXTERN_C const IID IID_IPerfRecoder;
             IPerfRecoder * This,
             /* [in] */ LONG id,
             /* [retval][out] */ BSTR *info);
+        
+        /* [id] */ HRESULT ( STDMETHODCALLTYPE *getAllProcessInfo )( 
+            IPerfRecoder * This,
+            /* [retval][out] */ BSTR *info);
+        
+        /* [id] */ HRESULT ( STDMETHODCALLTYPE *monitoringProcess )( 
+            IPerfRecoder * This,
+            /* [in] */ ULONG pid);
+        
+        /* [id] */ HRESULT ( STDMETHODCALLTYPE *getProcessCPUUsage )( 
+            IPerfRecoder * This,
+            /* [retval][out] */ FLOAT *usage);
+        
+        /* [id] */ HRESULT ( STDMETHODCALLTYPE *getProcessMemoryInfo )( 
+            IPerfRecoder * This,
+            /* [retval][out] */ ULONG *usage);
         
         END_INTERFACE
     } IPerfRecoderVtbl;
@@ -229,11 +257,23 @@ EXTERN_C const IID IID_IPerfRecoder;
 #define IPerfRecoder_getGPUFullName(This,id,name)	\
     ( (This)->lpVtbl -> getGPUFullName(This,id,name) ) 
 
-#define IPerfRecoder_getGPUUsages(This,id,usages)	\
-    ( (This)->lpVtbl -> getGPUUsages(This,id,usages) ) 
+#define IPerfRecoder_getGPUUsage(This,id,usages)	\
+    ( (This)->lpVtbl -> getGPUUsage(This,id,usages) ) 
 
 #define IPerfRecoder_getGPUMemoryInfo(This,id,info)	\
     ( (This)->lpVtbl -> getGPUMemoryInfo(This,id,info) ) 
+
+#define IPerfRecoder_getAllProcessInfo(This,info)	\
+    ( (This)->lpVtbl -> getAllProcessInfo(This,info) ) 
+
+#define IPerfRecoder_monitoringProcess(This,pid)	\
+    ( (This)->lpVtbl -> monitoringProcess(This,pid) ) 
+
+#define IPerfRecoder_getProcessCPUUsage(This,usage)	\
+    ( (This)->lpVtbl -> getProcessCPUUsage(This,usage) ) 
+
+#define IPerfRecoder_getProcessMemoryInfo(This,usage)	\
+    ( (This)->lpVtbl -> getProcessMemoryInfo(This,usage) ) 
 
 #endif /* COBJMACROS */
 
