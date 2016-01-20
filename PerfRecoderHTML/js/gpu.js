@@ -16,6 +16,8 @@
 						usedMemory /= 1024;
 						series[0].addPoint([time, usedMemory], true, true);
 						series[1].addPoint([time, usage], true, true);
+						series[0].removePoint(0);
+						series[1].removePoint(0);
 					}, interval);
 				}
 			}
@@ -91,6 +93,7 @@
 					data.push({ x: time + i * interval, y: 0 });
 				return data;
 			}(),
+			yAxis: 1,
 			tooltip: {
 				valueSuffix: '%'
 			}
