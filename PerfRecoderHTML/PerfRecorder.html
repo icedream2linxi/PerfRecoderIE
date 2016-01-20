@@ -47,33 +47,36 @@
 					},
 					yAxis: [{
 						title: {
-							text: '显存使用'
+							text: '显存使用',
+							style: {
+								color: '#AA4643'
+							}
 						},
-						plotLines: [{
-							value: 0,
-							width: 1,
-							color: '#808080'
-						}],
 						labels: {
 							formatter: function () {
 								return Highcharts.numberFormat(this.value, 2) + 'MB';
+							},
+							style: {
+								color: '#AA4643'
 							}
-						}
+						},
+						gridLineColor: '#AA4643'
 					}, {
 						title: {
-							text: 'GPU使用率'
-						},
-						plotLines: [{
-							value: 0,
-							width: 1,
-							color: '#4572A7'
-						}],
-						labels: {
-							formatter: function () {
-								return Highcharts.numberFormat(this.value, 2) + '%';
+							text: 'GPU使用率',
+							style: {
+								color: '#4572A7'
 							}
 						},
-						opposite: true
+						labels: {
+							format: '{value}%',
+							style: {
+								color: '#4572A7'
+							}
+						},
+						opposite: true,
+						max: 100,
+						min: 0
 					}],
 					tooltip: {
 						shared: true,
