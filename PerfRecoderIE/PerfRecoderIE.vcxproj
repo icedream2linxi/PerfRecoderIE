@@ -113,7 +113,7 @@
       <ModuleDefinitionFile>.\PerfRecoderIE.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <RegisterOutput>true</RegisterOutput>
-      <AdditionalDependencies>comsuppw.lib;..\ntlib\lib32\ntdll.lib;..\NVAPI\x86\nvapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comsuppw.lib;iphlpapi.lib;ws2_32.lib;version.lib;..\ntlib\lib32\ntdll.lib;..\NVAPI\x86\nvapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -146,7 +146,7 @@
       <ModuleDefinitionFile>.\PerfRecoderIE.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <RegisterOutput>true</RegisterOutput>
-      <AdditionalDependencies>comsuppw.lib;..\ntlib\lib64\ntdll.lib;..\NVAPI\amd64\nvapi64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comsuppw.lib;iphlpapi.lib;ws2_32.lib;version.lib;..\ntlib\lib64\ntdll.lib;..\NVAPI\amd64\nvapi64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -183,7 +183,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <RegisterOutput>true</RegisterOutput>
-      <AdditionalDependencies>comsuppw.lib;..\ntlib\lib32\ntdll.lib;..\NVAPI\x86\nvapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comsuppw.lib;iphlpapi.lib;ws2_32.lib;version.lib;..\ntlib\lib32\ntdll.lib;..\NVAPI\x86\nvapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -219,7 +219,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <RegisterOutput>true</RegisterOutput>
-      <AdditionalDependencies>comsuppw.lib;..\ntlib\lib64\ntdll.lib;..\NVAPI\amd64\nvapi64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comsuppw.lib;iphlpapi.lib;ws2_32.lib;version.lib;..\ntlib\lib64\ntdll.lib;..\NVAPI\amd64\nvapi64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -237,6 +237,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="PcapSource.cpp" />
     <ClCompile Include="PerfRecoder.cpp" />
     <ClCompile Include="PerfRecoderIE.cpp" />
     <ClCompile Include="PerfRecoderIE_i.c">
@@ -253,6 +254,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="PortCache.cpp" />
     <ClCompile Include="ProcessInfo.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -260,15 +262,21 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dllmain.h" />
+    <ClInclude Include="Packet.h" />
+    <ClInclude Include="PcapSource.h" />
     <ClInclude Include="PerfRecoder.h" />
     <ClInclude Include="PerfRecoderIE_i.h" />
+    <ClInclude Include="PortCache.h" />
     <ClInclude Include="ProcessInfo.hpp" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="TrafficSource.h" />
+    <ClInclude Include="Utils.h" />
     <ClInclude Include="_IPerfRecoderEvents_CP.h" />
   </ItemGroup>
   <ItemGroup>
