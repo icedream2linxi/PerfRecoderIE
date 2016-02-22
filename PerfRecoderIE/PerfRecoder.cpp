@@ -10,6 +10,8 @@
 #include <shlobj.h>
 #include <TlHelp32.h>
 #include <psapi.h>
+#include <boost/algorithm/string.hpp>
+#include <boost/scope_exit.hpp>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 using namespace std;
@@ -351,11 +353,33 @@ STDMETHODIMP CPerfRecoder::getAllProcessInfo(BSTR* info)
 	};
 	vector<Info> infos;
 
+	DWORD pid = GetCurrentProcessId();
+	wchar_t processName[MAX_PATH];
+
 	do {
 		Info info;
 		info.pid = pe32.th32ProcessID;
-		info.ppid = pe32.th32ParentProcessID;
+		if (info.pid == pid)
+			continue;
+
 		info.name = static_cast<char*>(CW2A(pe32.szExeFile));
+		if (!boost::iequals(info.name, "iexplore.exe"))
+			continue;
+
+		info.ppid = pe32.th32ParentProcessID;
+		HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, info.ppid);
+		if (hProcess == NULL)
+			continue;
+		BOOST_SCOPE_EXIT((hProcess)) {
+			CloseHandle(hProcess);
+		} BOOST_SCOPE_EXIT_END;
+
+		DWORD dwSize = MAX_PATH;
+		QueryFullProcessImageName(hProcess, 0, processName, &dwSize);
+		//if (_wcsicmp(processName, L"iexplore.exe") != 0)
+		if (!boost::iends_with(processName, L"\\iexplore.exe"))
+			continue;
+
 		infos.push_back(info);
 	} while (Process32Next(hProcessSnap, &pe32));
 	CloseHandle(hProcessSnap);

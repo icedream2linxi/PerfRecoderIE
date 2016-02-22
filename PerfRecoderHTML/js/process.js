@@ -2,7 +2,7 @@
 	var processInfos = JSON.parse(PerfRecoder.getAllProcessInfo());
 	var $process = $('#process');
 	for (var i = 0; i < processInfos.length; ++i) {
-		var info = processInfos[i]
+		var info = processInfos[i];
 		$process.append('<option value="' + info.pid + '">' + info.name + ', ' + info.pid + '</option>');
 	}
 
