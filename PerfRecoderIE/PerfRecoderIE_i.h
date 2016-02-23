@@ -4,7 +4,7 @@
 
 
  /* File created by MIDL compiler version 8.00.0603 */
-/* at Mon Feb 22 14:43:49 2016
+/* at Tue Feb 23 15:41:16 2016
  */
 /* Compiler settings for PerfRecoderIE.idl:
     Oicf, W1, Zp8, env=Win32 (32b run), target_arch=X86 8.00.0603 
@@ -122,6 +122,15 @@ EXTERN_C const IID IID_IPerfRecoder;
         virtual /* [id] */ HRESULT STDMETHODCALLTYPE getProcessMemoryInfo( 
             /* [retval][out] */ BSTR *usage) = 0;
         
+        virtual /* [id] */ HRESULT STDMETHODCALLTYPE getIfAdapters( 
+            /* [retval][out] */ BSTR *adapters) = 0;
+        
+        virtual /* [id] */ HRESULT STDMETHODCALLTYPE selectIfAdapter( 
+            /* [in] */ SHORT idx) = 0;
+        
+        virtual /* [id] */ HRESULT STDMETHODCALLTYPE getNetTransSpeed( 
+            /* [retval][out] */ BSTR *netTransSpeed) = 0;
+        
     };
     
     
@@ -215,6 +224,18 @@ EXTERN_C const IID IID_IPerfRecoder;
             IPerfRecoder * This,
             /* [retval][out] */ BSTR *usage);
         
+        /* [id] */ HRESULT ( STDMETHODCALLTYPE *getIfAdapters )( 
+            IPerfRecoder * This,
+            /* [retval][out] */ BSTR *adapters);
+        
+        /* [id] */ HRESULT ( STDMETHODCALLTYPE *selectIfAdapter )( 
+            IPerfRecoder * This,
+            /* [in] */ SHORT idx);
+        
+        /* [id] */ HRESULT ( STDMETHODCALLTYPE *getNetTransSpeed )( 
+            IPerfRecoder * This,
+            /* [retval][out] */ BSTR *netTransSpeed);
+        
         END_INTERFACE
     } IPerfRecoderVtbl;
 
@@ -274,6 +295,15 @@ EXTERN_C const IID IID_IPerfRecoder;
 
 #define IPerfRecoder_getProcessMemoryInfo(This,usage)	\
     ( (This)->lpVtbl -> getProcessMemoryInfo(This,usage) ) 
+
+#define IPerfRecoder_getIfAdapters(This,adapters)	\
+    ( (This)->lpVtbl -> getIfAdapters(This,adapters) ) 
+
+#define IPerfRecoder_selectIfAdapter(This,idx)	\
+    ( (This)->lpVtbl -> selectIfAdapter(This,idx) ) 
+
+#define IPerfRecoder_getNetTransSpeed(This,netTransSpeed)	\
+    ( (This)->lpVtbl -> getNetTransSpeed(This,netTransSpeed) ) 
 
 #endif /* COBJMACROS */
 

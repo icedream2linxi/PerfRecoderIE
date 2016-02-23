@@ -23,6 +23,9 @@ interface IPerfRecoder : IDispatch{
 	[id(6)] HRESULT monitoringProcess([in] ULONG pid);
 	[id(7)] HRESULT getProcessCPUUsage([out, retval] FLOAT* usage);
 	[id(8)] HRESULT getProcessMemoryInfo([out, retval] BSTR* usage);
+	[id(9)] HRESULT getIfAdapters([out, retval] BSTR* adapters);
+	[id(10)] HRESULT selectIfAdapter([in] SHORT idx);
+	[id(11)] HRESULT getNetTransSpeed([out, retval] BSTR* netTransSpeed);
 };
 [
 	uuid(3AA47554-0D3F-4399-9138-5E4506951DF6),

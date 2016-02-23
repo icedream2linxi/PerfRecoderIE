@@ -14,6 +14,9 @@
 		<label>进程 : </label><select id="process"></select>
 		<input type="button" value="监控" onclick="ProcessMonitoring()" />
 		<div id="processChart"></div>
+		<label>网卡 : </label><select id="network"></select>
+		<input type="button" value="监控" onclick="NetworkMonitoring()" />
+		<div id="networkChart"></div>
 
 		<script type="text/javascript">
 			var interval = 1000;
@@ -34,5 +37,6 @@
 		</script>
 		<script type="text/javascript" src="./js/gpu.js"></script>
 		<script type="text/javascript" src="./js/process.js"></script>
+		<script type="text/javascript" src="./js/network.js"></script>
 	</body>
 </html>

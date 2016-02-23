@@ -4,12 +4,16 @@
 #include "resource.h"       // main symbols
 
 #include <thread>
+#include <mutex>
 #include <nvapi.h>
 #include <memory>
+#include <vector>
 
 #include "PerfRecoderIE_i.h"
 #include "_IPerfRecoderEvents_CP.h"
 #include "ProcessInfo.hpp"
+#include "PcapSource.h"
+#include "PortCache.h"
 
 
 #if defined(_WIN32_WCE) && !defined(_CE_DCOM) && !defined(_CE_ALLOW_SINGLE_THREADED_OBJECTS_IN_MTA)
@@ -18,6 +22,25 @@
 
 using namespace ATL;
 
+struct NetTrans
+{
+	uint64_t recv;
+	uint64_t send;
+	NetTrans() : recv(0), send(0) {}
+	NetTrans &operator+=(const NetTrans &oth)
+	{
+		recv += oth.recv;
+		send += oth.send;
+		return *this;
+	}
+	NetTrans operator+(const NetTrans &oth)
+	{
+		NetTrans nt;
+		nt.recv = recv + oth.recv;
+		nt.send = send + oth.send;
+		return nt;
+	}
+};
 
 // CPerfRecoder
 
@@ -41,6 +64,18 @@ private:
 	ULONGLONG m_processNoIdleTime;
 	float m_cpuUsage;
 	std::shared_ptr<ProcessCpuUsage> m_cu;
+
+	PcapSource m_pcap;
+	PortCache m_pc;
+	std::vector<std::wstring> m_ifNames;
+	long m_ifIdx;
+	bool m_reconnect;
+	std::thread m_netTransThread;
+	std::vector<NetTrans> m_nts;
+	std::mutex m_ntsMutex;
+	uint64_t m_recvSpeed;
+	uint64_t m_sendSpeed;
+
 public:
 	CPerfRecoder();
 
@@ -92,6 +127,9 @@ public:
 	STDMETHOD(monitoringProcess)(ULONG pid);
 	STDMETHOD(getProcessCPUUsage)(FLOAT* usage);
 	STDMETHOD(getProcessMemoryInfo)(BSTR* usage);
+	STDMETHOD(getIfAdapters)(BSTR* adapters);
+	STDMETHOD(selectIfAdapter)(SHORT idx);
+	STDMETHOD(getNetTransSpeed)(BSTR* netTransSpeed);
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(PerfRecoder), CPerfRecoder)

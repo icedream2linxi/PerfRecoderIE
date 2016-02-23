@@ -17,6 +17,7 @@
 #define PCAP_SOURCE_H
 
 #include "TrafficSource.h"
+#include <inttypes.h>
 #include "../pcap/pcap.h"
 
 class PcapSource : public TrafficSource
@@ -47,7 +48,7 @@ public:
     virtual bool Initialize();
     virtual ~PcapSource();
     virtual int EnumDevices();
-    virtual void GetDeviceName(int index, TCHAR *buf, int cchLen);
+    virtual std::wstring GetDeviceName(int index);
     virtual bool SelectDevice(int index);
     virtual bool Capture(PacketInfo *pi, bool *timeout);
 

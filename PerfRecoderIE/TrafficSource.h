@@ -1,6 +1,7 @@
 #ifndef TRAFFIC_SOURCE_H
 #define TRAFFIC_SOURCE_H
 
+#include <string>
 #include "Packet.h"
 
 #pragma region Protocol Headers
@@ -97,7 +98,7 @@ public:
     virtual ~TrafficSource() {};
 
     virtual int EnumDevices() = 0;
-    virtual void GetDeviceName(int index, TCHAR *buf, int cchLen) = 0;
+    virtual std::wstring GetDeviceName(int index) = 0;
     virtual bool SelectDevice(int index) = 0;
 
     // Return value

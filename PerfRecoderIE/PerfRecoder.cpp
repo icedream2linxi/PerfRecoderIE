@@ -3,9 +3,9 @@
 #include "stdafx.h"
 #include "PerfRecoder.h"
 #include <fstream>
-#include <vector>
 #include <string>
 #include <algorithm>
+#include <numeric>
 #include <comutil.h>
 #include <shlobj.h>
 #include <TlHelp32.h>
@@ -34,6 +34,10 @@ CPerfRecoder::CPerfRecoder()
 	, m_sysNoIdleTime(0)
 	, m_processNoIdleTime(0)
 	, m_cpuUsage(0)
+	, m_ifIdx(0)
+	, m_reconnect(false)
+	, m_recvSpeed(0)
+	, m_sendSpeed(0)
 {
 	memset(m_hPhysicalGpu, 0, sizeof(m_hPhysicalGpu));
 }
@@ -76,8 +80,51 @@ HRESULT CPerfRecoder::FinalConstruct()
 	NvAPI_GPU_GetUsages = (NvAPI_GPU_GetUsages_t)nvapi_QueryInterface(0x189A1FDF);
 
 	PhpInit();
+	m_pcap.Initialize();
+	int count = m_pcap.EnumDevices();
+	for (int i = 0; i < count; ++i)
+		m_ifNames.push_back(m_pcap.GetDeviceName(i));
+	m_pcap.SelectDevice(m_ifIdx);
 
 	m_thread = std::thread(&CPerfRecoder::run, this);
+	m_netTransThread = std::thread([&]() {
+		while (!m_stop)
+		{
+			if (m_reconnect)
+			{
+				m_reconnect = false;
+				long ifIdx = 0;
+				InterlockedExchange(&ifIdx, m_ifIdx);
+				if (!m_pcap.SelectDevice(ifIdx))
+					continue;
+			}
+
+			bool timeout = false;
+			PacketInfo pi;
+			if (!m_pcap.Capture(&pi, &timeout))
+			{
+				if (!timeout)
+					m_pcap.Reconnect(m_ifIdx);
+				continue;
+			}
+
+			int pid = 0;
+			if (pi.trasportProtocol = TRA_TCP)
+				pid = m_pc.GetTcpPortPid(pi.local_port);
+			else if (pi.trasportProtocol == TRA_UDP)
+				pid = m_pc.GetUdpPortPid(pi.local_port);
+			if (pid == 0 || pid != m_processId)
+				continue;
+
+			NetTrans nt;
+			if (pi.dir == DIR_UP)
+				nt.send = pi.size;
+			else if (pi.dir == DIR_DOWN)
+				nt.recv = pi.size;
+			std::lock_guard<std::mutex> lock(m_ntsMutex);
+			m_nts.push_back(nt);
+		}
+	});
 
 	return S_OK;
 }
@@ -154,7 +201,7 @@ void CPerfRecoder::run()
 			<< "GPU #" << i << " DedicatedVideoMemoryEvictionsSize,"
 			<< "GPU #" << i << " DedicatedVideoMemoryEvictionCount,";
 	}
-	fout << "CPU,WorkingSetSize,PagefileUsage" << endl;
+	fout << "CPU,WorkingSetSize,PagefileUsage,NetRecv,NetSend" << endl;
 
 	clock_t prevClock = clock();
 	while (!m_stop)
@@ -185,7 +232,7 @@ void CPerfRecoder::run()
 		}
 
 		if (m_processId == 0)
-			fout << 0 << "," << 0 << "," << 0 << endl;
+			fout << 0 << "," << 0 << "," << 0 << "," << 0 << "," << 0 << endl;
 		else
 		{
 			//FLOAT cpuUsage = getProcessCPUUsage();
@@ -194,7 +241,18 @@ void CPerfRecoder::run()
 			MemoryInfo info = getProcessMemoryInfo();
 			fout << m_cpuUsage << ","
 				<< info.workingSetSize << ","
-				<< info.pagefileUsage << endl;
+				<< info.pagefileUsage << ",";
+
+			NetTrans nt;
+			std::vector<NetTrans> nts;
+			m_ntsMutex.lock();
+			m_nts.swap(nts);
+			m_ntsMutex.unlock();
+			nt = std::accumulate(nts.begin(), nts.end(), nt);
+			fout << nt.recv << ","
+				<< nt.send;
+			InterlockedExchange(&m_recvSpeed, nt.recv / 500);
+			InterlockedExchange(&m_sendSpeed, nt.send / 500);
 		}
 	}
 }
@@ -486,5 +544,53 @@ CPerfRecoder::MemoryInfo CPerfRecoder::getProcessMemoryInfo()
 
 	CloseHandle(hProcess);
 	return info;
+}
+
+STDMETHODIMP CPerfRecoder::getIfAdapters(BSTR* adapters)
+{
+	StringBuffer sb;
+	Writer<StringBuffer> writer(sb);
+
+	writer.StartArray();
+	for (size_t i = 0; i < m_ifNames.size(); ++i)
+	{
+		writer.StartObject();
+
+		writer.Key("idx");
+		writer.Int(i);
+
+		auto name = m_ifNames[i];
+		writer.Key("name");
+		writer.String(CW2A(name.c_str()));
+
+		writer.EndObject();
+	}
+	writer.EndArray();
+
+	*adapters = _com_util::ConvertStringToBSTR(sb.GetString());
+	return S_OK;
+}
+
+STDMETHODIMP CPerfRecoder::selectIfAdapter(SHORT idx)
+{
+	InterlockedExchange(&m_ifIdx, idx);
+	m_reconnect = true;
+	return S_OK;
+}
+
+STDMETHODIMP CPerfRecoder::getNetTransSpeed(BSTR* netTransSpeed)
+{
+	StringBuffer sb;
+	Writer<StringBuffer> writer(sb);
+	writer.StartObject();
+	writer.Key("recv");
+	writer.Int64(m_recvSpeed);
+
+	writer.Key("send");
+	writer.Int64(m_sendSpeed);
+	writer.EndObject();
+
+	*netTransSpeed = _com_util::ConvertStringToBSTR(sb.GetString());
+	return S_OK;
 }
 

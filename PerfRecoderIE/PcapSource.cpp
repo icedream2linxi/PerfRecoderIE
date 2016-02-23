@@ -82,7 +82,7 @@ int PcapSource::EnumDevices()
     return _numDevices;
 }
 
-void PcapSource::GetDeviceName(int index, TCHAR *buf, int cchLen)
+std::wstring PcapSource::GetDeviceName(int index)
 {
     char name[256];
     TCHAR tName[256];
@@ -127,7 +127,7 @@ void PcapSource::GetDeviceName(int index, TCHAR *buf, int cchLen)
         }
     }
 
-    _tcscpy_s(buf, cchLen, tName);
+	return std::wstring(tName);
 }
 
 bool PcapSource::SelectDevice(int index)
