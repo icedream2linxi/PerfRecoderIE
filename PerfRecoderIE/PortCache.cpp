@@ -61,20 +61,34 @@ void PortCache::RebuildTcpTable()
     RtlZeroMemory(_tcpPortTable, sizeof(_tcpPortTable));
 
     // Rebuild the table
-    MIB_TCPTABLE_OWNER_PID table;
-    table.dwNumEntries = sizeof(table) / sizeof(table.table[0]);
+    MIB_TCPTABLE_OWNER_PID *table = (MIB_TCPTABLE_OWNER_PID*)malloc(sizeof(MIB_TCPTABLE_OWNER_PID));
+    table->dwNumEntries = sizeof(MIB_TCPTABLE_OWNER_PID) / sizeof(table->table[0]);
 
-    DWORD tableSize = sizeof(table);
+    DWORD tableSize = sizeof(MIB_TCPTABLE_OWNER_PID);
 
-    if (GetExtendedTcpTable((void *)&table, &tableSize, 
-        FALSE, AF_INET, TCP_TABLE_OWNER_PID_ALL, 0) == NO_ERROR )
+	DWORD dwRet = NO_ERROR;
+    if ((dwRet = GetExtendedTcpTable((void *)table, &tableSize, 
+        FALSE, AF_INET, TCP_TABLE_OWNER_PID_ALL, 0)) == ERROR_INSUFFICIENT_BUFFER)
     {
-        for(unsigned int i = 0; i < table.dwNumEntries; i++)
-        {
-            _tcpPortTable[ntohs((unsigned short)table.table[i].dwLocalPort)] = 
-                table.table[i].dwOwningPid;
-        }
-    }
+		free(table);
+		table = (MIB_TCPTABLE_OWNER_PID*)malloc(tableSize);
+		table->dwNumEntries = tableSize / sizeof(table->table[0]);
+	}
+
+	dwRet = GetExtendedTcpTable((void *)table, &tableSize,
+		FALSE, AF_INET, TCP_TABLE_OWNER_PID_ALL, 0);
+	if (dwRet != NO_ERROR)
+	{
+		free(table);
+		return;
+	}
+
+	for (unsigned int i = 0; i < table->dwNumEntries; i++)
+	{
+		_tcpPortTable[ntohs((unsigned short)table->table[i].dwLocalPort)] =
+			table->table[i].dwOwningPid;
+	}
+	free(table);
 }
 
 void PortCache::RebuildUdpTable()
@@ -83,18 +97,32 @@ void PortCache::RebuildUdpTable()
     RtlZeroMemory(_udpPortTable, sizeof(_udpPortTable));
 
     // Rebuild the table
-    MIB_UDPTABLE_OWNER_PID table;
-    table.dwNumEntries = sizeof(table) / sizeof(table.table[0]);
+    MIB_UDPTABLE_OWNER_PID *table = (MIB_UDPTABLE_OWNER_PID*)malloc(sizeof(MIB_UDPTABLE_OWNER_PID));
+    table->dwNumEntries = sizeof(MIB_UDPTABLE_OWNER_PID) / sizeof(table->table[0]);
 
-    DWORD tableSize = sizeof(table);
+    DWORD tableSize = sizeof(MIB_UDPTABLE_OWNER_PID);
 
-    if (GetExtendedUdpTable((void *)&table, &tableSize, 
-        FALSE, AF_INET, UDP_TABLE_OWNER_PID, 0) == NO_ERROR)
+	DWORD dwRet = NO_ERROR;
+    if ((dwRet = GetExtendedUdpTable((void *)table, &tableSize, 
+        FALSE, AF_INET, UDP_TABLE_OWNER_PID, 0)) == ERROR_INSUFFICIENT_BUFFER)
     {
-        for(unsigned int i = 0; i < table.dwNumEntries; i++)
-        {
-            _udpPortTable[ntohs((unsigned short)table.table[i].dwLocalPort)] = 
-                table.table[i].dwOwningPid;
-        }
+		free(table);
+		table = (MIB_UDPTABLE_OWNER_PID*)malloc(tableSize);
+		table->dwNumEntries = tableSize / sizeof(table->table[0]);
     }
+
+	dwRet = GetExtendedUdpTable((void *)table, &tableSize,
+		FALSE, AF_INET, UDP_TABLE_OWNER_PID, 0);
+	if (dwRet != NO_ERROR)
+	{
+		free(table);
+		return;
+	}
+
+	for (unsigned int i = 0; i < table->dwNumEntries; i++)
+	{
+		_udpPortTable[ntohs((unsigned short)table->table[i].dwLocalPort)] =
+			table->table[i].dwOwningPid;
+	}
+	free(table);
 }

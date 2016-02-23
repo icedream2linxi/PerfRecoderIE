@@ -690,6 +690,12 @@ float ProcessCpuUsage::getUsage()
 			break;
 	} while (process = PH_NEXT_PROCESS(process));
 
+	if (process == NULL)
+	{
+		PhFree(processes);
+		return 0;
+	}
+
 	PhUpdateDelta(&CpuKernelDelta, process->KernelTime.QuadPart);
 	PhUpdateDelta(&CpuUserDelta, process->UserTime.QuadPart);
 

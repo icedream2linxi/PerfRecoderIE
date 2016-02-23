@@ -1,4 +1,4 @@
-﻿var networkId = 0;
+﻿var networkId = -1;
 $(function () {
 	var networkInfos = JSON.parse(PerfRecoder.getIfAdapters());
 	var $network = $('#network');
@@ -15,7 +15,7 @@ $(function () {
 					var series = this.series;
 					setInterval(function () {
 						var time = (new Date()).getTime();
-						if (networkId === 0) {
+						if (networkId === -1) {
 							series[0].addPoint([time, 0], true, true);
 							series[1].addPoint([time, 0], true, true);
 							return;
@@ -112,7 +112,7 @@ $(function () {
 });
 
 
-function networkMonitoring() {
+function NetworkMonitoring() {
 	networkId = $('#network').val();
 	if (networkId == null || networkId == 0 || networkId == '') {
 		networkId = 0;

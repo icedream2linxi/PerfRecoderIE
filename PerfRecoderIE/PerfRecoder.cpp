@@ -250,7 +250,7 @@ void CPerfRecoder::run()
 			m_ntsMutex.unlock();
 			nt = std::accumulate(nts.begin(), nts.end(), nt);
 			fout << nt.recv << ","
-				<< nt.send;
+				<< nt.send << endl;
 			InterlockedExchange(&m_recvSpeed, nt.recv / 500);
 			InterlockedExchange(&m_sendSpeed, nt.send / 500);
 		}
