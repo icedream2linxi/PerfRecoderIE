@@ -1,4 +1,17 @@
 ﻿var networkId = -1;
+
+function NetworkMonitoring() {
+	networkId = $('#network').val();
+	if (networkId == null || networkId == 0 || networkId == '') {
+		networkId = 0;
+		return;
+	}
+	networkId = parseInt(networkId, 10);
+	PerfRecoder.selectIfAdapter(networkId);
+
+	$('#networkChart').highcharts().setTitle({ text: $('option[value=' + $('#network').val() + ']').text() });
+}
+
 $(function () {
 	var networkInfos = JSON.parse(PerfRecoder.getIfAdapters());
 	var $network = $('#network');
@@ -109,17 +122,6 @@ $(function () {
 			}
 		}]
 	});
+
+	NetworkMonitoring();
 });
-
-
-function NetworkMonitoring() {
-	networkId = $('#network').val();
-	if (networkId == null || networkId == 0 || networkId == '') {
-		networkId = 0;
-		return;
-	}
-	networkId = parseInt(networkId, 10);
-	PerfRecoder.selectIfAdapter(networkId);
-
-	$('#networkChart').highcharts().setTitle({ text: $('option[value=' + $('#network').val() + ']').text() });
-}
