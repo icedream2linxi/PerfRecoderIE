@@ -112,8 +112,8 @@ END_CONNECTION_POINT_MAP()
 	float getProcessCPUUsage();
 	struct MemoryInfo
 	{
-		SIZE_T workingSetSize;
-		SIZE_T pagefileUsage;
+		uint64_t workingSetSize;
+		uint64_t pagefileUsage;
 	};
 	MemoryInfo getProcessMemoryInfo();
 
