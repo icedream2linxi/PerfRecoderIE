@@ -12,6 +12,7 @@
 #include <psapi.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/scope_exit.hpp>
+#include <boost/format.hpp>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 using namespace std;
@@ -27,6 +28,22 @@ NvAPI_GPU_GetUsages_t NvAPI_GPU_GetUsages = NULL;
 
 #define TOULL(ft) (*(ULONGLONG*)(void*)&ft)
 
+uint64_t SystemTimeToULL(const SYSTEMTIME &st)
+{
+	FILETIME ft;
+	SystemTimeToFileTime(&st, &ft);
+	ULARGE_INTEGER ui;
+	ui.HighPart = ft.dwHighDateTime;
+	ui.LowPart = ft.dwLowDateTime;
+	return ui.QuadPart / 1000000;
+}
+
+std::string FormatSysTime(const SYSTEMTIME &st)
+{
+	boost::format fmt("%d-%02d-%02d %02d:%02d:%02d:%03d");
+	return boost::str(fmt % st.wYear % st.wMonth % st.wDay % st.wHour % st.wMinute % st.wSecond % st.wMilliseconds);
+}
+
 CPerfRecoder::CPerfRecoder()
 	: m_physicalGpuCount(0)
 	, m_stop(false)
@@ -38,6 +55,8 @@ CPerfRecoder::CPerfRecoder()
 	, m_reconnect(false)
 	, m_recvSpeed(0)
 	, m_sendSpeed(0)
+	, m_recvPrevTime(0)
+	, m_sendPrevTime(0)
 {
 	memset(m_hPhysicalGpu, 0, sizeof(m_hPhysicalGpu));
 }
@@ -116,11 +135,22 @@ HRESULT CPerfRecoder::FinalConstruct()
 			if (pid == 0 || pid != m_processId)
 				continue;
 
+			double curTime = pi.time_s + (double)pi.time_us / 1000000;
 			NetTrans nt;
 			if (pi.dir == DIR_UP)
+			{
 				nt.send = pi.size;
+				double speed = (double)pi.size / (curTime - m_sendPrevTime);
+				m_sendPrevTime = curTime;
+				//InterlockedExchange(&m_sendSpeed, (uint64_t)speed);
+			}
 			else if (pi.dir == DIR_DOWN)
+			{
 				nt.recv = pi.size;
+				double speed = (double)pi.size / (curTime - m_recvPrevTime);
+				m_recvPrevTime = curTime;
+				//InterlockedExchange(&m_recvSpeed, (uint64_t)speed);
+			}
 			std::lock_guard<std::mutex> lock(m_ntsMutex);
 			m_nts.push_back(nt);
 		}
@@ -203,14 +233,20 @@ void CPerfRecoder::run()
 	}
 	fout << "CPU,WorkingSetSize,PagefileUsage,NetRecv,NetSend" << endl;
 
-	clock_t prevClock = clock();
+	SYSTEMTIME prevSt;
+	GetLocalTime(&prevSt);
+	uint64_t prevTime = SystemTimeToULL(prevSt);
 	while (!m_stop)
 	{
-		clock_t curClock = clock();
-		std::this_thread::sleep_for(std::chrono::milliseconds(500 - (curClock - prevClock)));
+		SYSTEMTIME curSt;
+		GetLocalTime(&curSt);
+		uint64_t curTime = SystemTimeToULL(curSt);
+		std::this_thread::sleep_for(std::chrono::milliseconds(500 - (curTime - prevTime)));
 
-		prevClock = clock();
-		fout << prevClock << ",";
+
+		GetLocalTime(&prevSt);
+		prevTime = SystemTimeToULL(prevSt);
+		fout << FormatSysTime(prevSt) << ",";
 
 		NvAPI_Status res = NVAPI_OK;
 		for (NvU32 i = 0; i < m_physicalGpuCount; ++i)
@@ -251,8 +287,8 @@ void CPerfRecoder::run()
 			nt = std::accumulate(nts.begin(), nts.end(), nt);
 			fout << nt.recv << ","
 				<< nt.send << endl;
-			InterlockedExchange(&m_recvSpeed, nt.recv / 500);
-			InterlockedExchange(&m_sendSpeed, nt.send / 500);
+			InterlockedExchange(&m_recvSpeed, nt.recv / 0.5);
+			InterlockedExchange(&m_sendSpeed, nt.send / 0.5);
 		}
 	}
 }
@@ -584,10 +620,10 @@ STDMETHODIMP CPerfRecoder::getNetTransSpeed(BSTR* netTransSpeed)
 	Writer<StringBuffer> writer(sb);
 	writer.StartObject();
 	writer.Key("recv");
-	writer.Int64(m_recvSpeed);
+	writer.Uint64(m_recvSpeed);
 
 	writer.Key("send");
-	writer.Int64(m_sendSpeed);
+	writer.Uint64(m_sendSpeed);
 	writer.EndObject();
 
 	*netTransSpeed = _com_util::ConvertStringToBSTR(sb.GetString());

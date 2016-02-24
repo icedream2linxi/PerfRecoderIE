@@ -75,6 +75,8 @@ private:
 	std::mutex m_ntsMutex;
 	uint64_t m_recvSpeed;
 	uint64_t m_sendSpeed;
+	double m_recvPrevTime;
+	double m_sendPrevTime;
 
 public:
 	CPerfRecoder();
