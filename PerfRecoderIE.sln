@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PerfRecoderIE", "PerfRecoderIE\PerfRecoderIE.vcxproj", "{FE856DA7-BBE1-410D-A766-6794623F4F1B}"
 EndProject
@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PerfRecoderIEPS", "PerfReco
 	ProjectSection(ProjectDependencies) = postProject
 		{FE856DA7-BBE1-410D-A766-6794623F4F1B} = {FE856DA7-BBE1-410D-A766-6794623F4F1B}
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PerfRecoder", "PerfRecoder\PerfRecoder.vcxproj", "{30D4674B-452A-4DE2-9DD1-C1275B02B839}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,6 +32,14 @@ Global
 		{D794C71B-F556-48E2-846C-520D9836AED2}.Debug|x86.ActiveCfg = Debug|Win32
 		{D794C71B-F556-48E2-846C-520D9836AED2}.Release|x64.ActiveCfg = Release|x64
 		{D794C71B-F556-48E2-846C-520D9836AED2}.Release|x86.ActiveCfg = Release|Win32
+		{30D4674B-452A-4DE2-9DD1-C1275B02B839}.Debug|x64.ActiveCfg = Debug|x64
+		{30D4674B-452A-4DE2-9DD1-C1275B02B839}.Debug|x64.Build.0 = Debug|x64
+		{30D4674B-452A-4DE2-9DD1-C1275B02B839}.Debug|x86.ActiveCfg = Debug|Win32
+		{30D4674B-452A-4DE2-9DD1-C1275B02B839}.Debug|x86.Build.0 = Debug|Win32
+		{30D4674B-452A-4DE2-9DD1-C1275B02B839}.Release|x64.ActiveCfg = Release|x64
+		{30D4674B-452A-4DE2-9DD1-C1275B02B839}.Release|x64.Build.0 = Release|x64
+		{30D4674B-452A-4DE2-9DD1-C1275B02B839}.Release|x86.ActiveCfg = Release|Win32
+		{30D4674B-452A-4DE2-9DD1-C1275B02B839}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
