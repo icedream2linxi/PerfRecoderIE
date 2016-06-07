@@ -21,6 +21,7 @@ BOOL CMainDlg::OnIdle()
 
 LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
+	DoDataExchange();
 	// center the dialog on the screen
 	CenterWindow();
 

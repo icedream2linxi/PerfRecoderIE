@@ -3,8 +3,9 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #pragma once
+#include "LineChart.h"
 
-class CMainDlg : public CDialogImpl<CMainDlg>, public CUpdateUI<CMainDlg>,
+class CMainDlg : public CDialogImpl<CMainDlg>, public CUpdateUI<CMainDlg>, public CWinDataExchange<CMainDlg>,
 		public CMessageFilter, public CIdleHandler
 {
 public:
@@ -24,6 +25,10 @@ public:
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 	END_MSG_MAP()
 
+	BEGIN_DDX_MAP(CMainDlg)
+		DDX_CONTROL(IDC_LINE_CHART, m_lineChart)
+	END_DDX_MAP()
+
 // Handler prototypes (uncomment arguments if needed):
 //	LRESULT MessageHandler(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 //	LRESULT CommandHandler(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
@@ -36,4 +41,7 @@ public:
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 	void CloseDialog(int nVal);
+
+private:
+	CLineChart m_lineChart;
 };
