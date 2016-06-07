@@ -41,24 +41,24 @@ LRESULT CLineChart::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/,
 
 void CLineChart::DrawGrid(CDC &dc, const CRect &rect)
 {
-	const int height = rect.Height();
-	const int width = rect.Width();
-	const int heightSpan = height / 10;
-	const int widthSpan = width / (60 / 10);
+	const float height = (float)rect.Height();
+	const float width = (float)rect.Width();
+	const float heightSpan = height / 10;
+	const float widthSpan = width / (60 / 10);
 
-	for (int h = 0; h < height; h += heightSpan)
+	for (float h = 0; h < height; h += heightSpan)
 	{
 		if (h == 0)
 			continue;
-		dc.MoveTo(0, h);
-		dc.LineTo(width, h);
+		dc.MoveTo(0, (int)(height - h));
+		dc.LineTo((int)width, (int)(height - h));
 	}
 
-	for (int w = 0; w < width; w += widthSpan)
+	for (float w = 0; w < width; w += widthSpan)
 	{
 		if (w == 0)
 			continue;
-		dc.MoveTo(w, 0);
-		dc.LineTo(w, width);
+		dc.MoveTo((int)w, 0);
+		dc.LineTo((int)w, (int)width);
 	}
 }
