@@ -457,24 +457,35 @@ STDMETHODIMP CPerfRecoder::getAllProcessInfo(BSTR* info)
 			continue;
 
 		info.name = static_cast<char*>(CW2A(pe32.szExeFile));
-		if (!boost::iequals(info.name, "iexplore.exe"))
-			continue;
+		if (boost::iequals(info.name, "iexplore.exe")
+			|| boost::iequals(info.name, "chrome.exe")
+			|| boost::iequals(info.name, "firefox.exe")
+			|| boost::iequals(info.name, "BackstageRenderer.exe"))
+		{
+			info.ppid = pe32.th32ParentProcessID;
+			if (boost::iequals(info.name, "firefox.exe") || boost::iequals(info.name, "BackstageRenderer.exe"))
+			{
+				infos.push_back(info);
+				continue;
+			}
 
-		info.ppid = pe32.th32ParentProcessID;
-		HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, info.ppid);
-		if (hProcess == NULL)
-			continue;
-		BOOST_SCOPE_EXIT((hProcess)) {
-			CloseHandle(hProcess);
-		} BOOST_SCOPE_EXIT_END;
+			HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, info.ppid);
+			if (hProcess == NULL)
+				continue;
+			BOOST_SCOPE_EXIT((hProcess)) {
+				CloseHandle(hProcess);
+			} BOOST_SCOPE_EXIT_END;
 
-		DWORD dwSize = MAX_PATH;
-		QueryFullProcessImageName(hProcess, 0, processName, &dwSize);
-		//if (_wcsicmp(processName, L"iexplore.exe") != 0)
-		if (!boost::iends_with(processName, L"\\iexplore.exe"))
-			continue;
-
-		infos.push_back(info);
+			DWORD dwSize = MAX_PATH;
+			QueryFullProcessImageName(hProcess, 0, processName, &dwSize);
+			if (boost::iends_with(processName, L"\\iexplore.exe")
+				|| boost::iends_with(processName, L"\\chrome.exe")
+				|| boost::iends_with(processName, L"\\firefox.exe")
+				|| boost::iends_with(processName, L"\\BackstageRenderer.exe"))
+			{
+				infos.push_back(info);
+			}
+		}
 	} while (Process32Next(hProcessSnap, &pe32));
 	CloseHandle(hProcessSnap);
 

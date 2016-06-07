@@ -6,6 +6,7 @@
 *.user
 *.sln.docstates
 *.opendb
+*.vc.db
 
 # Build results
 
