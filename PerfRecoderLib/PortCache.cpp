@@ -15,7 +15,8 @@
 
 #include "stdafx.h"
 #include "PortCache.h"
-#include "iphlpapi.h"
+#include <iphlpapi.h>
+#include <winsock.h>
 
 PortCache::PortCache()
 {

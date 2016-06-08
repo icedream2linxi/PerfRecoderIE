@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "ProcessInfo.hpp"
 #include <ntstatus.h>
+#include <lmaccess.h>
 
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
 #define NT_INFORMATION(Status) ((((ULONG)(Status)) >> 30) == 1)

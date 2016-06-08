@@ -89,7 +89,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\NVAPI;..\;G:\OpenSourceCode\boost_1_58_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\NVAPI;..\;g:\OpenSourceCode\boost_1_60_0\;..\PerfRecoderLib\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -123,7 +123,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\NVAPI;..\;G:\OpenSourceCode\boost_1_58_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\NVAPI;..\;g:\OpenSourceCode\boost_1_60_0\;..\PerfRecoderLib\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -156,7 +156,7 @@
       <Optimization>MaxSpeed</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\NVAPI;..\;G:\OpenSourceCode\boost_1_58_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\NVAPI;..\;g:\OpenSourceCode\boost_1_60_0\;..\PerfRecoderLib\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Midl>
@@ -193,7 +193,7 @@
       <Optimization>MaxSpeed</Optimization>
       <PreprocessorDefinitions>_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\NVAPI;..\;G:\OpenSourceCode\boost_1_58_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\NVAPI;..\;g:\OpenSourceCode\boost_1_60_0\;..\PerfRecoderLib\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Midl>
@@ -237,7 +237,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="PcapSource.cpp" />
     <ClCompile Include="PerfRecoder.cpp" />
     <ClCompile Include="PerfRecoderIE.cpp" />
     <ClCompile Include="PerfRecoderIE_i.c">
@@ -254,29 +253,20 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="PortCache.cpp" />
-    <ClCompile Include="ProcessInfo.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dllmain.h" />
-    <ClInclude Include="Packet.h" />
-    <ClInclude Include="PcapSource.h" />
     <ClInclude Include="PerfRecoder.h" />
     <ClInclude Include="PerfRecoderIE_i.h" />
-    <ClInclude Include="PortCache.h" />
-    <ClInclude Include="ProcessInfo.hpp" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="TrafficSource.h" />
-    <ClInclude Include="Utils.h" />
     <ClInclude Include="_IPerfRecoderEvents_CP.h" />
   </ItemGroup>
   <ItemGroup>
@@ -292,6 +282,11 @@
   </ItemGroup>
   <ItemGroup>
     <Midl Include="PerfRecoderIE.idl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PerfRecoderLib\PerfRecoderLib.vcxproj">
+      <Project>{36b7b387-0515-4416-a13c-aa28463b3898}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

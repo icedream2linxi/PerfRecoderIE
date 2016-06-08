@@ -15,6 +15,8 @@
 
 #include "stdafx.h"
 #include "Utils.h"
+#include <shellapi.h>
+#include <commctrl.h>
 
 // ListView
 void Utils::InnerListViewInsert(HWND hList, int index, int numColumns, va_list argList)
