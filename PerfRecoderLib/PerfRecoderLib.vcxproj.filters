@@ -45,9 +45,6 @@
     <ClInclude Include="inc\ProcessResourceUsage.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ProcessResourceUsageImpl.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="CpuUsage.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -69,9 +66,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ProcessResourceUsage.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ProcessResourceUsageImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CpuUsage.cpp">

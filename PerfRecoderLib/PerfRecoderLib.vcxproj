@@ -142,7 +142,6 @@
     <ClInclude Include="inc\ProcessResourceUsage.hpp" />
     <ClInclude Include="inc\TrafficSource.h" />
     <ClInclude Include="inc\Utils.h" />
-    <ClInclude Include="ProcessResourceUsageImpl.hpp" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
@@ -152,7 +151,6 @@
     <ClCompile Include="PortCache.cpp" />
     <ClCompile Include="ProcessInfo.cpp" />
     <ClCompile Include="ProcessResourceUsage.cpp" />
-    <ClCompile Include="ProcessResourceUsageImpl.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
