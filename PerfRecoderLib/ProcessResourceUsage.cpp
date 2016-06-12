@@ -2,6 +2,7 @@
 #include "ProcessResourceUsage.hpp"
 #include <numeric>
 #include <boost/algorithm/string.hpp>
+#include <psapi.h>
 #include "CpuUsage.hpp"
 #include "PcapSource.h"
 #include "PortCache.h"
@@ -50,6 +51,7 @@ void ProcessResourceUsage::record()
 {
 	recordCpuUsage();
 	recordNetworkUsage();
+	recordMemoryUsage();
 }
 
 void ProcessResourceUsage::addProcess(DWORD processId)
@@ -171,8 +173,38 @@ void ProcessResourceUsage::recordNetworkUsage()
 
 		NetworkTransmittedSize total;
 		total = std::accumulate(sizes.begin(), sizes.end(), total);
-		InterlockedExchange(&resource->m_recvSpeed, total.recv / duration.count());
-		InterlockedExchange(&resource->m_sendSpeed, total.send / duration.count());
+		InterlockedExchange(&resource->recvSpeed, total.recv / duration.count());
+		InterlockedExchange(&resource->sendSpeed, total.send / duration.count());
+	}
+}
+
+void ProcessResourceUsage::recordMemoryUsage()
+{
+	std::vector<decltype(m_resourceUsages)::key_type> pids;
+	{
+		std::lock_guard<std::mutex> lock(m_resourceUsagesMutex);
+		for (auto &item : m_resourceUsages)
+			pids.push_back(item.first);
+	}
+
+	for (auto pid : pids) {
+		std::unique_lock<std::mutex> lock(m_resourceUsagesMutex);
+		auto iter = m_resourceUsages.find(pid);
+		if (iter == m_resourceUsages.end())
+			continue;
+
+		auto resource = iter->second;
+		lock.unlock();
+
+		PROCESS_MEMORY_COUNTERS_EX mem;
+
+		HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+		GetProcessMemoryInfo(hProcess, (PROCESS_MEMORY_COUNTERS*)&mem, sizeof(PROCESS_MEMORY_COUNTERS_EX));
+
+		InterlockedExchange(&resource->workingSetSize, mem.WorkingSetSize);
+		InterlockedExchange(&resource->pagefileUsage, mem.PagefileUsage);
+
+		CloseHandle(hProcess);
 	}
 }
 

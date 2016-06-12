@@ -36,8 +36,10 @@ struct ResourceUsage
 {
 	DWORD processId;
 	float cpuUsage;
-	uint64_t m_recvSpeed;
-	uint64_t m_sendSpeed;
+	uint64_t recvSpeed;
+	uint64_t sendSpeed;
+	uint64_t workingSetSize;
+	uint64_t pagefileUsage;
 
 	PH_UINT64_DELTA *CpuKernelDelta;
 	PH_UINT64_DELTA *CpuUserDelta;
@@ -65,6 +67,7 @@ private:
 	void init();
 	void recordCpuUsage();
 	void recordNetworkUsage();
+	void recordMemoryUsage();
 	void networkThreadRun();
 
 private:
