@@ -77,7 +77,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\inc;..\NVAPI;..\;g:\OpenSourceCode\boost_1_60_0\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\inc;..\NVAPI;..\;g:\OpenSourceCode\boost_1_60_0\;$(WindowsSDKDir)\include\km;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -90,7 +90,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\inc;..\NVAPI;..\;g:\OpenSourceCode\boost_1_60_0\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\inc;..\NVAPI;..\;g:\OpenSourceCode\boost_1_60_0\;$(WindowsSDKDir)\include\km;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -105,7 +105,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\inc;..\NVAPI;..\;g:\OpenSourceCode\boost_1_60_0\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\inc;..\NVAPI;..\;g:\OpenSourceCode\boost_1_60_0\;$(WindowsSDKDir)\include\km;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -122,7 +122,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.\inc;..\NVAPI;..\;g:\OpenSourceCode\boost_1_60_0\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\inc;..\NVAPI;..\;g:\OpenSourceCode\boost_1_60_0\;$(WindowsSDKDir)\include\km;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -136,6 +136,7 @@
   <ItemGroup>
     <ClInclude Include="AMDGPUResourceUsage.hpp" />
     <ClInclude Include="CpuUsage.hpp" />
+    <ClInclude Include="d3dkmt.h" />
     <ClInclude Include="inc\GPUResourceUsage.hpp" />
     <ClInclude Include="inc\Packet.h" />
     <ClInclude Include="inc\PcapSource.h" />
@@ -145,6 +146,7 @@
     <ClInclude Include="inc\TrafficSource.h" />
     <ClInclude Include="inc\Utils.h" />
     <ClInclude Include="NvidiaGPUResourceUsage.hpp" />
+    <ClInclude Include="ProcessGPUsage.hpp" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
@@ -155,6 +157,7 @@
     <ClCompile Include="NvidiaGPUResourceUsage.cpp" />
     <ClCompile Include="PcapSource.cpp" />
     <ClCompile Include="PortCache.cpp" />
+    <ClCompile Include="ProcessGPUsage.cpp" />
     <ClCompile Include="ProcessInfo.cpp" />
     <ClCompile Include="ProcessResourceUsage.cpp" />
     <ClCompile Include="stdafx.cpp">
