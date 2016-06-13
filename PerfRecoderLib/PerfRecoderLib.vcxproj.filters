@@ -54,6 +54,9 @@
     <ClInclude Include="NvidiaGPUResourceUsage.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AMDGPUResourceUsage.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -81,6 +84,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="NvidiaGPUResourceUsage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AMDGPUResourceUsage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

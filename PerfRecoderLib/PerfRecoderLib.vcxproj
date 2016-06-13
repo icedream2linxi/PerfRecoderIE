@@ -134,6 +134,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AMDGPUResourceUsage.hpp" />
     <ClInclude Include="CpuUsage.hpp" />
     <ClInclude Include="inc\GPUResourceUsage.hpp" />
     <ClInclude Include="inc\Packet.h" />
@@ -148,6 +149,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AMDGPUResourceUsage.cpp" />
     <ClCompile Include="CpuUsage.cpp" />
     <ClCompile Include="GPUResourceUsage.cpp" />
     <ClCompile Include="NvidiaGPUResourceUsage.cpp" />

@@ -2,14 +2,6 @@
 #include "GPUResourceUsage.hpp"
 #include "NvidiaGPUResourceUsage.hpp"
 
-class AMDGPUResourceUsage : public GPUResourceUsageBase
-{
-public:
-	AMDGPUResourceUsage();
-	~AMDGPUResourceUsage();
-	virtual std::vector<std::shared_ptr<GPUsage>> getUsages() override;
-};
-
 GPUResourceUsage::GPUResourceUsage()
 {
 	m_vendors.push_back(std::make_shared<NvidiaGPUResourceUsage>());
