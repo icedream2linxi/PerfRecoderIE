@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "ProcessGPUsage.hpp"
 #include <setupapi.h>
-#include <ntddvdeo.h>
 #include <LMaccess.h>
 #include <d3dkmthk.h>
 //#include <winternl.h>
@@ -9,6 +8,7 @@
 
 // Performance Counter
 
+extern "C"
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -18,6 +18,8 @@ NtQueryPerformanceCounter(
 );
 
 namespace {
+	static GUID GUID_DISPLAY_DEVICE_ARRIVAL_I = { 0x1ca05180, 0xa699, 0x450a,{ 0x9a, 0x0c, 0xde, 0x4f, 0xbe, 0x3d, 0xdd, 0x89 } };
+
 	std::wstring QueryDeviceDescription(HDEVINFO deviceInfoSet, PSP_DEVINFO_DATA deviceInfoData)
 	{
 		ULONG bufferSize = 128;
@@ -151,7 +153,7 @@ std::vector<std::shared_ptr<TotalGPUsageData>> ProcessGPUsage::getTotalUsage() c
 
 bool ProcessGPUsage::initializeD3DStatistics()
 {
-	HDEVINFO deviceInfoSet = SetupDiGetClassDevs(&GUID_DISPLAY_DEVICE_ARRIVAL, NULL, NULL, DIGCF_DEVICEINTERFACE | DIGCF_PRESENT);
+	HDEVINFO deviceInfoSet = SetupDiGetClassDevs(&GUID_DISPLAY_DEVICE_ARRIVAL_I, NULL, NULL, DIGCF_DEVICEINTERFACE | DIGCF_PRESENT);
 	if (deviceInfoSet == NULL)
 		return false;
 
@@ -159,7 +161,7 @@ bool ProcessGPUsage::initializeD3DStatistics()
 	SP_DEVICE_INTERFACE_DATA deviceInterfaceData;
 	deviceInterfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
 
-	while (SetupDiEnumDeviceInterfaces(deviceInfoSet, NULL, &GUID_DISPLAY_DEVICE_ARRIVAL, memberIndex, &deviceInterfaceData)) {
+	while (SetupDiEnumDeviceInterfaces(deviceInfoSet, NULL, &GUID_DISPLAY_DEVICE_ARRIVAL_I, memberIndex, &deviceInterfaceData)) {
 		ULONG detailDataSize = 0x100;
 		PSP_DEVICE_INTERFACE_DETAIL_DATA detailData = (PSP_DEVICE_INTERFACE_DETAIL_DATA)malloc(detailDataSize);
 		detailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
