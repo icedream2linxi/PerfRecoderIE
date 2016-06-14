@@ -6,6 +6,7 @@
 #include <vector>
 #include "d3dkmt.h"
 #include "CpuUsage.hpp"
+#include "TypeDefine.hpp"
 
 struct ProcessSingleGPUsageData
 {
@@ -44,9 +45,12 @@ class ProcessGPUsage
 	ProcessGPUsage();
 public:
 	~ProcessGPUsage();
-	ProcessGPUsage &getInstance();
+	static ProcessGPUsage &getInstance();
 	void addProcess(DWORD pid);
+	void removeProcess(DWORD pid);
 	void record();
+	const std::shared_ptr<ProcessGPUsageData> getUsage(DWORD pid) const;
+	std::vector<std::shared_ptr<TotalGPUsageData>> getTotalUsage() const;
 
 private:
 	bool initializeD3DStatistics();

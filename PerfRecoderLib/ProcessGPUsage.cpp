@@ -74,6 +74,9 @@ ProcessGPUsage & ProcessGPUsage::getInstance()
 
 void ProcessGPUsage::addProcess(DWORD pid)
 {
+	if (m_usages.count(pid) != 0)
+		return;
+
 	auto usage = std::make_shared<ProcessGPUsageData>();
 	usage->pid = pid;
 	for each (auto gpuAdapter in m_adapters) {
@@ -82,6 +85,13 @@ void ProcessGPUsage::addProcess(DWORD pid)
 		usage->gpus.push_back(gpu);
 	}
 	m_usages.insert(std::make_pair(pid, usage));
+}
+
+void ProcessGPUsage::removeProcess(DWORD pid)
+{
+	if (pid == 0)
+		return;
+	m_usages.erase(pid);
 }
 
 void ProcessGPUsage::record()
@@ -107,6 +117,36 @@ void ProcessGPUsage::record()
 				gpuUsage->usage = 1;
 		}
 	}
+}
+
+const std::shared_ptr<ProcessGPUsageData> ProcessGPUsage::getUsage(DWORD pid) const
+{
+	auto iter = m_usages.find(pid);
+	if (iter == m_usages.end())
+		return nullptr;
+	return iter->second;
+}
+
+std::vector<std::shared_ptr<TotalGPUsageData>> ProcessGPUsage::getTotalUsage() const
+{
+	std::vector<std::shared_ptr<TotalGPUsageData>> usages;
+	auto dynamicUsages = m_usages.find(0)->second->gpus;
+	for (size_t i = 0; i < m_adapters.size(); ++i) {
+		auto usage = std::make_shared<TotalGPUsageData>();
+
+		auto adapter = m_adapters[i];
+		usage->name = adapter->description;
+		usage->dedicatedLimit = adapter->dedicatedLimit;
+		usage->sharedLimit = adapter->sharedLimit;
+
+		auto dynamicUsage = dynamicUsages[i];
+		usage->usage = dynamicUsage->usage;
+		usage->dedicatedUsage = dynamicUsage->dedicatedUsage;
+		usage->sharedUsage = dynamicUsage->sharedUsage;
+		
+		usages.push_back(usage);
+	}
+	return usages;
 }
 
 bool ProcessGPUsage::initializeD3DStatistics()
@@ -206,8 +246,11 @@ void ProcessGPUsage::recordSegmentInformation(DWORD pid)
 	bool recordProcess = pid != 0;
 	HANDLE hProcess = NULL;
 
-	if (recordProcess)
+	if (recordProcess) {
 		hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+		if (hProcess == NULL)
+			return;
+	}
 	
 	auto iter = m_usages.find(pid);
 	if (iter == m_usages.end())
@@ -292,8 +335,11 @@ void ProcessGPUsage::recordNodeInformation(DWORD pid)
 	bool recordProcess = pid != 0;
 	HANDLE hProcess = NULL;
 
-	if (recordProcess)
+	if (recordProcess) {
 		hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+		if (hProcess == NULL)
+			return;
+	}
 
 	auto iter = m_usages.find(pid);
 	if (iter == m_usages.end())

@@ -6,8 +6,42 @@
 #include "CpuUsage.hpp"
 #include "PcapSource.h"
 #include "PortCache.h"
+#include "ProcessGPUsage.hpp"
 
-ResourceUsage::ResourceUsage()
+struct NetworkTransmittedSize
+{
+	uint64_t recv;
+	uint64_t send;
+	NetworkTransmittedSize() : recv(0), send(0) {}
+	NetworkTransmittedSize &operator+=(const NetworkTransmittedSize &oth)
+	{
+		recv += oth.recv;
+		send += oth.send;
+		return *this;
+	}
+	NetworkTransmittedSize operator+(const NetworkTransmittedSize &oth)
+	{
+		NetworkTransmittedSize nt;
+		nt.recv = recv + oth.recv;
+		nt.send = send + oth.send;
+		return nt;
+	}
+};
+
+struct ResourceUsageRecordAssist
+{
+	PH_UINT64_DELTA *CpuKernelDelta;
+	PH_UINT64_DELTA *CpuUserDelta;
+
+	std::vector<NetworkTransmittedSize> networkTransmittedSize;
+	std::mutex networkMutex;
+	std::chrono::high_resolution_clock::time_point prevTime;
+
+	ResourceUsageRecordAssist();
+	~ResourceUsageRecordAssist();
+};
+
+ResourceUsageRecordAssist::ResourceUsageRecordAssist()
 	: CpuKernelDelta(new PH_UINT64_DELTA)
 	, CpuUserDelta(new PH_UINT64_DELTA)
 	, prevTime(std::chrono::high_resolution_clock::now())
@@ -15,7 +49,7 @@ ResourceUsage::ResourceUsage()
 
 }
 
-ResourceUsage::~ResourceUsage()
+ResourceUsageRecordAssist::~ResourceUsageRecordAssist()
 {
 	if (CpuKernelDelta != nullptr) {
 		delete CpuKernelDelta;
@@ -52,14 +86,43 @@ void ProcessResourceUsage::record()
 	recordCpuUsage();
 	recordNetworkUsage();
 	recordMemoryUsage();
+
+	ProcessGPUsage::getInstance().record();
+	for each (auto item in m_resourceUsages) {
+		auto resourceUsage = item.second.first;
+		auto gpuUsage = ProcessGPUsage::getInstance().getUsage(resourceUsage->processId);
+
+		for each (auto gpu in gpuUsage->gpus) {
+			auto tempGPUsage = std::make_shared<GPUsage>();
+			tempGPUsage->adapterName = gpu->name;
+			tempGPUsage->usage = gpu->usage;
+			tempGPUsage->dedicatedUsage = gpu->dedicatedUsage;
+			tempGPUsage->sharedUsage = gpu->sharedUsage;
+			resourceUsage->gpuUsages.push_back(tempGPUsage);
+		}
+	}
 }
 
-void ProcessResourceUsage::addProcess(DWORD processId)
+void ProcessResourceUsage::addProcess(DWORD pid)
 {
-	std::shared_ptr<ResourceUsage> usage(new ResourceUsage);
-	usage->processId = processId;
 	std::lock_guard<std::mutex> lock(m_resourceUsagesMutex);
-	m_resourceUsages.insert(std::make_pair(processId, usage));
+	if (m_resourceUsages.count(pid) != 0)
+		return;
+
+	auto usage = std::make_shared<ResourceUsage>();
+	usage->processId = pid;
+	auto assist = std::make_shared<ResourceUsageRecordAssist>();
+	m_resourceUsages.insert(std::make_pair(pid, std::make_pair(usage, assist)));
+
+	ProcessGPUsage::getInstance().addProcess(pid);
+}
+
+void ProcessResourceUsage::removeProcess(DWORD pid)
+{
+	std::lock_guard<std::mutex> lock(m_resourceUsagesMutex);
+	m_resourceUsages.erase(pid);
+
+	ProcessGPUsage::getInstance().removeProcess(pid);
 }
 
 const std::vector<std::wstring> & ProcessResourceUsage::getNetworkInterfaceNames() const
@@ -73,6 +136,20 @@ void ProcessResourceUsage::selectNetworkInterface(int index)
 		return;
 	m_networkInterfaceIndex = index;
 	m_reconnect = true;
+}
+
+std::vector<std::shared_ptr<ResourceUsage>> ProcessResourceUsage::getUsages() const
+{
+	std::lock_guard<std::mutex> lock(m_resourceUsagesMutex);
+	std::vector<std::shared_ptr<ResourceUsage>> usages;
+	for each (auto item in m_resourceUsages)
+		usages.push_back(item.second.first);
+	return usages;
+}
+
+std::vector<std::shared_ptr<TotalGPUsageData>> ProcessResourceUsage::getTotalUsage()
+{
+	return ProcessGPUsage::getInstance().getTotalUsage();
 }
 
 void ProcessResourceUsage::init()
@@ -115,17 +192,18 @@ void ProcessResourceUsage::recordCpuUsage()
 		std::unique_lock<std::mutex> lock(m_resourceUsagesMutex);
 		auto iter = m_resourceUsages.find(processId);
 		if (iter != m_resourceUsages.end()) {
-			auto usage = iter->second;
+			auto usage = iter->second.first;
+			auto assist = iter->second.second;
 			lock.unlock();
 
-			PhUpdateDelta(usage->CpuKernelDelta, process->KernelTime.QuadPart);
-			PhUpdateDelta(usage->CpuUserDelta, process->UserTime.QuadPart);
+			PhUpdateDelta(assist->CpuKernelDelta, process->KernelTime.QuadPart);
+			PhUpdateDelta(assist->CpuUserDelta, process->UserTime.QuadPart);
 
 			FLOAT newCpuUsage;
 			FLOAT kernelCpuUsage;
 			FLOAT userCpuUsage;
-			kernelCpuUsage = (FLOAT)usage->CpuKernelDelta->Delta / m_sysTotalTime;
-			userCpuUsage = (FLOAT)usage->CpuUserDelta->Delta / m_sysTotalTime;
+			kernelCpuUsage = (FLOAT)assist->CpuKernelDelta->Delta / m_sysTotalTime;
+			userCpuUsage = (FLOAT)assist->CpuUserDelta->Delta / m_sysTotalTime;
 			newCpuUsage = kernelCpuUsage + userCpuUsage;
 			usage->cpuUsage = newCpuUsage * 100.0f;
 		}
@@ -155,7 +233,8 @@ void ProcessResourceUsage::recordNetworkUsage()
 		if (iter == m_resourceUsages.end())
 			continue;
 
-		auto resource = iter->second;
+		auto resource = iter->second.first;
+		auto assist = iter->second.second;
 		lock.unlock();
 
 		auto nowTime = std::chrono::high_resolution_clock::now();
@@ -163,10 +242,10 @@ void ProcessResourceUsage::recordNetworkUsage()
 
 		std::vector<NetworkTransmittedSize> sizes;
 		{
-			std::lock_guard<std::mutex> sizesLock(resource->networkMutex);
-			sizes.swap(resource->networkTransmittedSize);
-			prevTime = resource->prevTime;
-			resource->prevTime = nowTime;
+			std::lock_guard<std::mutex> sizesLock(assist->networkMutex);
+			sizes.swap(assist->networkTransmittedSize);
+			prevTime = assist->prevTime;
+			assist->prevTime = nowTime;
 		}
 
 		std::chrono::duration<double> duration = std::chrono::duration_cast<decltype(duration)>(nowTime - prevTime);
@@ -193,7 +272,7 @@ void ProcessResourceUsage::recordMemoryUsage()
 		if (iter == m_resourceUsages.end())
 			continue;
 
-		auto resource = iter->second;
+		auto resource = iter->second.first;
 		lock.unlock();
 
 		PROCESS_MEMORY_COUNTERS_EX mem;
@@ -238,7 +317,7 @@ void ProcessResourceUsage::networkThreadRun()
 		auto iter = m_resourceUsages.find(pid);
 		if (iter == m_resourceUsages.end())
 			continue;
-		auto resource = iter->second;
+		auto assist = iter->second.second;
 		resourceLock.unlock();
 
 		NetworkTransmittedSize size;
@@ -246,7 +325,7 @@ void ProcessResourceUsage::networkThreadRun()
 			size.send = packetInfo.size;
 		else if (packetInfo.dir = DIR_DOWN)
 			size.recv = packetInfo.size;
-		std::lock_guard<std::mutex> sizeLock(resource->networkMutex);
-		resource->networkTransmittedSize.push_back(size);
+		std::lock_guard<std::mutex> sizeLock(assist->networkMutex);
+		assist->networkTransmittedSize.push_back(size);
 	}
 }

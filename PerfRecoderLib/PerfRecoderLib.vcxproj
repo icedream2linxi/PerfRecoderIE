@@ -144,6 +144,7 @@
     <ClInclude Include="inc\ProcessInfo.hpp" />
     <ClInclude Include="inc\ProcessResourceUsage.hpp" />
     <ClInclude Include="inc\TrafficSource.h" />
+    <ClInclude Include="inc\TypeDefine.hpp" />
     <ClInclude Include="inc\Utils.h" />
     <ClInclude Include="NvidiaGPUResourceUsage.hpp" />
     <ClInclude Include="ProcessGPUsage.hpp" />

@@ -7,29 +7,18 @@
 #include <thread>
 #include <chrono>
 #include <ratio>
+#include "TypeDefine.hpp"
 
-struct PH_UINT64_DELTA;
 class PcapSource;
 class PortCache;
+struct ResourceUsageRecordAssist;
 
-struct NetworkTransmittedSize
+struct GPUsage
 {
-	uint64_t recv;
-	uint64_t send;
-	NetworkTransmittedSize() : recv(0), send(0) {}
-	NetworkTransmittedSize &operator+=(const NetworkTransmittedSize &oth)
-	{
-		recv += oth.recv;
-		send += oth.send;
-		return *this;
-	}
-	NetworkTransmittedSize operator+(const NetworkTransmittedSize &oth)
-	{
-		NetworkTransmittedSize nt;
-		nt.recv = recv + oth.recv;
-		nt.send = send + oth.send;
-		return nt;
-	}
+	std::wstring adapterName;
+	float usage;
+	uint64_t dedicatedUsage;
+	uint64_t sharedUsage;
 };
 
 struct ResourceUsage
@@ -41,15 +30,7 @@ struct ResourceUsage
 	uint64_t workingSetSize;
 	uint64_t pagefileUsage;
 
-	PH_UINT64_DELTA *CpuKernelDelta;
-	PH_UINT64_DELTA *CpuUserDelta;
-
-	std::vector<NetworkTransmittedSize> networkTransmittedSize;
-	std::mutex networkMutex;
-	std::chrono::high_resolution_clock::time_point prevTime;
-
-	ResourceUsage();
-	~ResourceUsage();
+	std::vector<std::shared_ptr<GPUsage>> gpuUsages;
 };
 
 class ProcessResourceUsage
@@ -59,9 +40,13 @@ public:
 	~ProcessResourceUsage();
 	static ProcessResourceUsage &getInstance();
 	void record();
-	void addProcess(DWORD processId);
+	void addProcess(DWORD pid);
+	void removeProcess(DWORD pid);
 	const std::vector<std::wstring> &getNetworkInterfaceNames() const;
 	void selectNetworkInterface(int index);
+	std::vector<std::shared_ptr<ResourceUsage>> getUsages() const;
+
+	static std::vector<std::shared_ptr<TotalGPUsageData>> getTotalUsage();
 
 private:
 	void init();
@@ -81,6 +66,6 @@ private:
 	long m_networkInterfaceIndex;
 	bool m_reconnect;
 
-	std::map<DWORD, std::shared_ptr<ResourceUsage>> m_resourceUsages;
-	std::mutex m_resourceUsagesMutex;
+	std::map<DWORD, std::pair<std::shared_ptr<ResourceUsage>, std::shared_ptr<ResourceUsageRecordAssist>>> m_resourceUsages;
+	mutable std::mutex m_resourceUsagesMutex;
 };
