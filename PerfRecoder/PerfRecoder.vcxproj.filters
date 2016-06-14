@@ -30,6 +30,9 @@
     <ClCompile Include="LineChart.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ReportCtrl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -45,6 +48,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LineChart.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ReportCtrl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

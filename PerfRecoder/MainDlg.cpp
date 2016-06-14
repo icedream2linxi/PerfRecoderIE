@@ -29,6 +29,7 @@ BOOL CMainDlg::OnIdle()
 
 LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
+	DoDataExchange();
 	// center the dialog on the screen
 	CenterWindow();
 
@@ -47,7 +48,6 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 	UIAddChildWindowContainer(m_hWnd);
 
 	m_cmbNewtorkAdapter.Attach(GetDlgItem(IDC_NETWORK_ADAPTER_CMB));
-	m_edResourceUsage.Attach(GetDlgItem(IDC_RESOURCE_USAGE_ED));
 
 	initNetworkAdapter();
 
@@ -116,7 +116,7 @@ void CMainDlg::initNetworkAdapter()
 void CMainDlg::run()
 {
 	//ProcessResourceUsage::getInstance().addProcess(40080);
-	ProcessResourceUsage::getInstance().addProcess(47728);
+	ProcessResourceUsage::getInstance().addProcess(7236);
 	const std::wstring tab = L"    ";
 	const std::wstring CRLN = L"\r\n";
 
@@ -227,6 +227,11 @@ LRESULT CMainDlg::OnReport(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, 
 		m_usageReport.swap(report);
 	}
 
-	m_edResourceUsage.SetWindowText(report.c_str());
+	m_reportCtrl.update(report);
+	//auto pos = m_edResourceUsage.GetScrollPos(SB_VERT);
+	////m_edResourceUsage.SetWindowText(report.c_str());
+	//m_edResourceUsage.SetSelAll(TRUE);
+	//m_edResourceUsage.ReplaceSel(report.c_str());
+	//m_edResourceUsage.SetScrollPos(SB_VERT, pos);
 	return 0;
 }
