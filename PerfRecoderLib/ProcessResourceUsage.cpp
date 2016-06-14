@@ -330,9 +330,9 @@ void ProcessResourceUsage::networkThreadRun()
 		resourceLock.unlock();
 
 		NetworkTransmittedSize size;
-		if (packetInfo.dir = DIR_UP)
+		if (packetInfo.dir == DIR_UP)
 			size.send = packetInfo.size;
-		else if (packetInfo.dir = DIR_DOWN)
+		else if (packetInfo.dir == DIR_DOWN)
 			size.recv = packetInfo.size;
 		std::lock_guard<std::mutex> sizeLock(assist->networkMutex);
 		assist->networkTransmittedSize.push_back(size);

@@ -114,7 +114,10 @@ void ProcessGPUsage::record()
 		auto gpuAdapter = m_adapters[i];
 		for each (auto item in m_usages) {
 			auto gpuUsage = item.second->gpus[i];
-			gpuUsage->usage = (float)(gpuUsage->GpuRunningTimeDelta.Delta / (elapsedTime * gpuUsage->activeNodeCount));
+			if (gpuUsage->GpuRunningTimeDelta.Delta == 0)
+				gpuUsage->usage = 0.0f;
+			else
+				gpuUsage->usage = (float)(gpuUsage->GpuRunningTimeDelta.Delta / (elapsedTime * gpuUsage->activeNodeCount));
 			if (gpuUsage->usage > 1)
 				gpuUsage->usage = 1;
 		}

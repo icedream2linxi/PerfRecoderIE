@@ -115,7 +115,8 @@ void CMainDlg::initNetworkAdapter()
 #include <locale>
 void CMainDlg::run()
 {
-	ProcessResourceUsage::getInstance().addProcess(40080);
+	//ProcessResourceUsage::getInstance().addProcess(40080);
+	ProcessResourceUsage::getInstance().addProcess(47728);
 	const std::wstring tab = L"    ";
 	const std::wstring CRLN = L"\r\n";
 
@@ -128,7 +129,7 @@ void CMainDlg::run()
 		auto nowTime = std::chrono::high_resolution_clock::now();
 		auto span = nowTime - prevTime;
 		if (span < interval) {
-			std::this_thread::sleep_for(span - interval);
+			std::this_thread::sleep_for(interval - span);
 			continue;
 		}
 
@@ -158,7 +159,9 @@ void CMainDlg::run()
 			ss << CRLN << flush;
 			ss << getProcessFileName(usage->processId) << L"[" << usage->processId << L"]" << CRLN << flush;
 			ss << tab << L"CPU利用率：" << fixed << (usage->cpuUsage * 100) << L"%" << CRLN << flush;
-			ss << tab << L"内存：" << formatSize(usage->workingSetSize) << CRLN << flush;
+			ss << tab << L"内存：" << formatSize(usage->pagefileUsage) << CRLN << flush;
+			ss << tab << L"接收速率：" << formatSize(usage->recvSpeed) << L"/S" << CRLN << flush;
+			ss << tab << L"发送速率：" << formatSize(usage->sendSpeed) << L"/S" << CRLN << flush;
 			for each (auto gpu in usage->gpuUsages) {
 				ss << tab << gpu->adapterName << CRLN << flush;
 				ss << tab << tab << L"GPU利用率：" << fixed << (gpu->usage * 100) << L"%" << CRLN << flush;
