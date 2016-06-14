@@ -66,7 +66,7 @@ std::vector<std::shared_ptr<GPUResourceUsageData>> NvidiaGPUResourceUsage::getUs
 		NvAPI_Status res = getMemoryInfo(m_hPhysicalGpu[i], memoryInfo);
 		if (res != NVAPI_OK)
 			continue;
-		usage->totalMemory = memoryInfo.dedicatedVideoMemory * 1024;
+		usage->totalMemory = memoryInfo.dedicatedVideoMemory * 1024ull;
 		usage->usedMemory = memoryInfo.version == 1 ?
 			(memoryInfo.dedicatedVideoMemory - memoryInfo.availableDedicatedVideoMemory) :
 			(memoryInfo.dedicatedVideoMemory - memoryInfo.curAvailableDedicatedVideoMemory);

@@ -398,6 +398,8 @@ void ProcessGPUsage::recordNodeInformation(DWORD pid)
 					gpuUsage->activeNodeCount++;
 				}
 			}
+
+			break; // 只取第一个得到GPU利用率与NVAPI取的非常相近
 		}
 
 		PhUpdateDelta(&gpuUsage->GpuRunningTimeDelta, gpuUsage->totalRunningTime);
