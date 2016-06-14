@@ -11,6 +11,7 @@
 #define WM_REPORT	(WM_USER + 100)
 
 class CMainDlg : public CDialogImpl<CMainDlg>, public CUpdateUI<CMainDlg>, public CWinDataExchange<CMainDlg>,
+	public CDialogResize<CMainDlg>,
 		public CMessageFilter, public CIdleHandler
 {
 public:
@@ -30,11 +31,16 @@ public:
 		COMMAND_ID_HANDLER(IDOK, OnOK)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		COMMAND_HANDLER(IDC_NETWORK_ADAPTER_CMB, CBN_SELCHANGE, OnCbnSelChangeNetworkAdapter)
+		CHAIN_MSG_MAP(CDialogResize<CMainDlg>)
 	END_MSG_MAP()
 
 	BEGIN_DDX_MAP(CMainDlg)
 		DDX_CONTROL(IDC_REPORT_CTRL, m_reportCtrl)
 	END_DDX_MAP()
+
+	BEGIN_DLGRESIZE_MAP(CMainDlg)
+		DLGRESIZE_CONTROL(IDC_REPORT_CTRL, DLSZ_SIZE_X | DLSZ_SIZE_Y)
+	END_DLGRESIZE_MAP()
 
 // Handler prototypes (uncomment arguments if needed):
 //	LRESULT MessageHandler(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
