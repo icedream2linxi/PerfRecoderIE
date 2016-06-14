@@ -20,9 +20,9 @@ GPUResourceUsage & GPUResourceUsage::getInstance()
 	return *instance;
 }
 
-std::vector<std::shared_ptr<GPUsage>> GPUResourceUsage::getUsages()
+std::vector<std::shared_ptr<GPUResourceUsageData>> GPUResourceUsage::getUsages()
 {
-	std::vector<std::shared_ptr<GPUsage>> result;
+	std::vector<std::shared_ptr<GPUResourceUsageData>> result;
 	for (auto &vendor : m_vendors) {
 		auto usages = vendor->getUsages();
 		result.insert(result.end(), usages.begin(), usages.end());

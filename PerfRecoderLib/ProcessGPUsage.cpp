@@ -114,7 +114,7 @@ void ProcessGPUsage::record()
 		auto gpuAdapter = m_adapters[i];
 		for each (auto item in m_usages) {
 			auto gpuUsage = item.second->gpus[i];
-			gpuUsage->usage = (float)(gpuUsage->GpuRunningTimeDelta.Delta / (elapsedTime * gpuAdapter->nodeCount));
+			gpuUsage->usage = (float)(gpuUsage->GpuRunningTimeDelta.Delta / (elapsedTime * gpuUsage->activeNodeCount));
 			if (gpuUsage->usage > 1)
 				gpuUsage->usage = 1;
 		}
@@ -231,6 +231,9 @@ bool ProcessGPUsage::initializeD3DStatistics()
 								gpuAdapter->apertureBitSet[i] = true;
 						}
 					}
+
+					if (gpuAdapter->description != L"Microsoft Basic Render Driver")
+						m_adapters.push_back(gpuAdapter);
 				}
 			}
 		}
@@ -351,9 +354,8 @@ void ProcessGPUsage::recordNodeInformation(DWORD pid)
 	for (size_t i = 0; i < m_adapters.size(); ++i) {
 		auto gpuAdapter = m_adapters[i];
 		auto gpuUsage = usage->gpus[i];
-		gpuUsage->sharedUsage = 0ull;
-		gpuUsage->dedicatedUsage = 0ull;
 		gpuUsage->totalRunningTime = 0ull;
+		gpuUsage->activeNodeCount = 0u;
 
 		for (uint32_t j = 0; j < gpuAdapter->nodeCount; ++j) {
 			D3DKMT_QUERYSTATISTICS queryStatistics;
@@ -378,13 +380,19 @@ void ProcessGPUsage::recordNodeInformation(DWORD pid)
 
 			if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
 			{
+				LONGLONG runningTime = 0ll;
 				if (recordProcess)
 				{
-					gpuUsage->totalRunningTime += queryStatistics.QueryResult.ProcessNodeInformation.RunningTime.QuadPart;
+					runningTime = queryStatistics.QueryResult.ProcessNodeInformation.RunningTime.QuadPart;
 				}
 				else
 				{
-					gpuUsage->totalRunningTime += queryStatistics.QueryResult.NodeInformation.GlobalInformation.RunningTime.QuadPart;
+					runningTime = queryStatistics.QueryResult.NodeInformation.GlobalInformation.RunningTime.QuadPart;
+				}
+
+				if (runningTime != 0) {
+					gpuUsage->totalRunningTime += runningTime;
+					gpuUsage->activeNodeCount++;
 				}
 			}
 		}

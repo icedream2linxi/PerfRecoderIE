@@ -7,12 +7,12 @@ class AMDGPUResourceUsage : public GPUResourceUsageBase
 public:
 	AMDGPUResourceUsage();
 	~AMDGPUResourceUsage();
-	virtual std::vector<std::shared_ptr<GPUsage>> getUsages() override;
+	virtual std::vector<std::shared_ptr<GPUResourceUsageData>> getUsages() override;
 
 private:
 	HMODULE m_hAdl;
 	int m_numberAdapters;
-	std::vector<std::shared_ptr<GPUsage>> m_usages;
+	std::vector<std::shared_ptr<GPUResourceUsageData>> m_usages;
 
 	typedef int(*ADL_MAIN_CONTROL_CREATE)(ADL_MAIN_MALLOC_CALLBACK, int);
 	typedef int(*ADL_MAIN_CONTROL_DESTROY)();

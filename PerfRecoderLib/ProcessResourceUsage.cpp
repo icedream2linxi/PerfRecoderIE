@@ -65,6 +65,8 @@ ResourceUsageRecordAssist::~ResourceUsageRecordAssist()
 ProcessResourceUsage::ProcessResourceUsage()
 {
 	init();
+
+	record();
 }
 
 ProcessResourceUsage::~ProcessResourceUsage()
@@ -92,13 +94,20 @@ void ProcessResourceUsage::record()
 		auto resourceUsage = item.second.first;
 		auto gpuUsage = ProcessGPUsage::getInstance().getUsage(resourceUsage->processId);
 
-		for each (auto gpu in gpuUsage->gpus) {
-			auto tempGPUsage = std::make_shared<GPUsage>();
+		for (size_t i = 0; i < gpuUsage->gpus.size(); ++i) {
+			auto gpu = gpuUsage->gpus[i];
+			decltype(resourceUsage->gpuUsages)::value_type tempGPUsage;
+			if (resourceUsage->gpuUsages.size() <= i) {
+				tempGPUsage = std::make_shared<GPUsage>();
+				resourceUsage->gpuUsages.push_back(tempGPUsage);
+			}
+			else
+				tempGPUsage = resourceUsage->gpuUsages[i];
+
 			tempGPUsage->adapterName = gpu->name;
 			tempGPUsage->usage = gpu->usage;
 			tempGPUsage->dedicatedUsage = gpu->dedicatedUsage;
 			tempGPUsage->sharedUsage = gpu->sharedUsage;
-			resourceUsage->gpuUsages.push_back(tempGPUsage);
 		}
 	}
 }
@@ -205,7 +214,7 @@ void ProcessResourceUsage::recordCpuUsage()
 			kernelCpuUsage = (FLOAT)assist->CpuKernelDelta->Delta / m_sysTotalTime;
 			userCpuUsage = (FLOAT)assist->CpuUserDelta->Delta / m_sysTotalTime;
 			newCpuUsage = kernelCpuUsage + userCpuUsage;
-			usage->cpuUsage = newCpuUsage * 100.0f;
+			usage->cpuUsage = newCpuUsage;
 		}
 	} while (process = PH_NEXT_PROCESS(process));
 

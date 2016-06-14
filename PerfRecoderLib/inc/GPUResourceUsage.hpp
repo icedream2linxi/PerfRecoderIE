@@ -2,7 +2,7 @@
 #include <vector>
 #include <memory>
 
-struct GPUsage
+struct GPUResourceUsageData
 {
 	std::string name;
 	float gpuUsage;
@@ -13,7 +13,7 @@ struct GPUsage
 class GPUResourceUsageBase
 {
 public:
-	virtual std::vector<std::shared_ptr<GPUsage>> getUsages() = 0;
+	virtual std::vector<std::shared_ptr<GPUResourceUsageData>> getUsages() = 0;
 };
 
 class GPUResourceUsage
@@ -22,7 +22,7 @@ class GPUResourceUsage
 public:
 	~GPUResourceUsage();
 	static GPUResourceUsage &getInstance();
-	std::vector<std::shared_ptr<GPUsage>> getUsages();
+	std::vector<std::shared_ptr<GPUResourceUsageData>> getUsages();
 
 private:
 	std::vector<std::shared_ptr<GPUResourceUsageBase>> m_vendors;

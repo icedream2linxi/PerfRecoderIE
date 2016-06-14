@@ -4,8 +4,8 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include "d3dkmt.h"
 #include "CpuUsage.hpp"
+#include "d3dkmt.h"
 #include "TypeDefine.hpp"
 
 struct ProcessSingleGPUsageData
@@ -16,6 +16,7 @@ struct ProcessSingleGPUsageData
 	uint64_t sharedUsage;
 
 	uint64_t totalRunningTime;
+	uint32_t activeNodeCount;
 	PH_UINT64_DELTA GpuRunningTimeDelta;
 };
 

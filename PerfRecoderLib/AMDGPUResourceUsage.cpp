@@ -43,7 +43,7 @@ AMDGPUResourceUsage::AMDGPUResourceUsage()
 	ADL_Adapter_AdapterInfo_Get(lpAdapterInfo, sizeof(AdapterInfo) * m_numberAdapters);
 
 	for (int i = 0; i < m_numberAdapters; ++i) {
-		auto usage = std::make_shared<GPUsage>();
+		auto usage = std::make_shared<GPUResourceUsageData>();
 		usage->name = (lpAdapterInfo + i)->strAdapterName;
 
 		ADLMemoryInfo memoryInfo;
@@ -63,7 +63,7 @@ AMDGPUResourceUsage::~AMDGPUResourceUsage()
 	}
 }
 
-std::vector<std::shared_ptr<GPUsage>> AMDGPUResourceUsage::getUsages()
+std::vector<std::shared_ptr<GPUResourceUsageData>> AMDGPUResourceUsage::getUsages()
 {
 	if (m_hAdl == NULL)
 		return m_usages;

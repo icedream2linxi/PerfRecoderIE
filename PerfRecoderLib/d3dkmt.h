@@ -1,6 +1,9 @@
 #ifndef _D3DKMT_H
 #define _D3DKMT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 // D3D definitions
 
 //typedef ULONG D3DKMT_HANDLE;
@@ -477,7 +480,10 @@ typedef struct _D3DKMT_QUERYSTATISTICS
 
 //typedef _Check_return_ NTSTATUS (APIENTRY *PFND3DKMT_OPENADAPTERFROMDEVICENAME)(_Inout_ D3DKMT_OPENADAPTERFROMDEVICENAME *);
 //typedef _Check_return_ NTSTATUS (APIENTRY *PFND3DKMT_CLOSEADAPTER)(_In_ const D3DKMT_CLOSEADAPTER *);
-//typedef _Check_return_ NTSTATUS (APIENTRY *PFND3DKMT_QUERYSTATISTICS)(_In_ const D3DKMT_QUERYSTATISTICS *);
-typedef LONG (*PFND3DKMT_QUERYSTATISTICS)(const D3DKMT_QUERYSTATISTICS *);
+typedef _Check_return_ NTSTATUS (APIENTRY *PFND3DKMT_QUERYSTATISTICS)(_In_ const D3DKMT_QUERYSTATISTICS *);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif

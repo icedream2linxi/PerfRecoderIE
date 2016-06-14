@@ -33,8 +33,9 @@ NvidiaGPUResourceUsage::NvidiaGPUResourceUsage()
 		NvAPI_ShortString szName;
 		NvAPI_GPU_GetFullName(m_hPhysicalGpu[i], szName);
 
-		auto gpuUsage = std::make_shared<GPUsage>();
-		gpuUsage->name = szName;
+		auto gpuUsage = std::make_shared<GPUResourceUsageData>();
+		gpuUsage->name = "NVIDIA ";
+		gpuUsage->name += szName;
 		m_usages.push_back(gpuUsage);
 	}
 }
@@ -49,26 +50,27 @@ NvidiaGPUResourceUsage::~NvidiaGPUResourceUsage()
 	NvAPI_Unload();
 }
 
-std::vector<std::shared_ptr<GPUsage>> NvidiaGPUResourceUsage::getUsages()
+std::vector<std::shared_ptr<GPUResourceUsageData>> NvidiaGPUResourceUsage::getUsages()
 {
 	if (m_hNvapi == NULL)
 		return m_usages;
 
 	for (NvU32 i = 0; i < m_physicalGpuCount; ++i) {
+		auto usage = m_usages[i];
 		unsigned int gpuUsages[NVAPI_MAX_USAGES_PER_GPU] = { 0 };
 		gpuUsages[0] = (NVAPI_MAX_USAGES_PER_GPU * 4) | 0x10000;
 		NvAPI_GPU_GetUsages(m_hPhysicalGpu[i], gpuUsages);
-		m_usages[i]->gpuUsage = gpuUsages[3];
+		usage->gpuUsage = gpuUsages[3] / 100.0f;
 
 		NV_DISPLAY_DRIVER_MEMORY_INFO memoryInfo = { 0 };
 		NvAPI_Status res = getMemoryInfo(m_hPhysicalGpu[i], memoryInfo);
 		if (res != NVAPI_OK)
 			continue;
-		m_usages[i]->totalMemory = memoryInfo.dedicatedVideoMemory * 1024;
-		m_usages[i]->usedMemory = memoryInfo.version == 1 ?
+		usage->totalMemory = memoryInfo.dedicatedVideoMemory * 1024;
+		usage->usedMemory = memoryInfo.version == 1 ?
 			(memoryInfo.dedicatedVideoMemory - memoryInfo.availableDedicatedVideoMemory) :
 			(memoryInfo.dedicatedVideoMemory - memoryInfo.curAvailableDedicatedVideoMemory);
-		m_usages[i]->usedMemory *= 1024;
+		usage->usedMemory *= 1024;
 	}
 
 	return m_usages;
