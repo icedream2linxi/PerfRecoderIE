@@ -236,8 +236,6 @@ std::wstring CMainDlg::getConfigFile() const
 
 void CMainDlg::run()
 {
-	//ProcessResourceUsage::getInstance().addProcess(40080);
-	//ProcessResourceUsage::getInstance().addProcess(7236);
 	const std::wstring tab = L"    ";
 	const std::wstring CRLN = L"\r\n";
 
@@ -298,8 +296,8 @@ void CMainDlg::run()
 		PostMessage(WM_REPORT);
 
 		// 更新要监测的进程
-		if (!m_modulesChanged)
-			continue;
+		//if (!m_modulesChanged)
+		//	continue;
 		auto pids = filterProcessId();
 		m_modulesChanged = false;
 		std::set<DWORD> diffPids;
@@ -389,45 +387,55 @@ void CMainDlg::OnModuleFilterInputed()
 
 std::set<DWORD> CMainDlg::filterProcessId()
 {
-	std::set<DWORD> pids;
-	HANDLE hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-	if (hProcessSnap == INVALID_HANDLE_VALUE)
-		return pids;
+	DWORD processIds[1024];
+	DWORD processCount = 1024;
+	EnumProcesses(processIds, sizeof(processIds), &processCount);
+	processCount /= sizeof(DWORD);
 
-	PROCESSENTRY32 pe32;
-	pe32.dwSize = sizeof(PROCESSENTRY32);
-	if (!Process32First(hProcessSnap, &pe32)) {
-		CloseHandle(hProcessSnap);
-		return pids;
+	std::set<DWORD> pids;
+	wchar_t moduleFilePath[1024];
+	DWORD fileNameLen = 1024;
+	for (DWORD i = 0; i < processCount; ++i) {
+		DWORD pid = processIds[i];
+		HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+		if (NULL == hProcess)
+			continue;
+
+		DWORD len = GetProcessImageFileName(hProcess, moduleFilePath, fileNameLen);
+		if (len != 0) {
+			std::lock_guard<std::mutex> lock(m_modulesMutex);
+			LPWSTR fileName = PathFindFileName(moduleFilePath);
+			for (DWORD m = 0; m < len; ++m)
+				fileName[m] = tolower(fileName[m]);
+			if (m_modules.count(fileName) != 0) {
+				pids.insert(pid);
+				continue;
+			}
+		}
+
+		//HMODULE hModules[1024];
+		//DWORD moduleCount = 1024;
+		//if (EnumProcessModules(hProcess, hModules, sizeof(hModules), &moduleCount)) {
+		//	moduleCount /= sizeof(HMODULE);
+
+		//	for (DWORD j = 0; j < moduleCount; ++j) {
+		//		len = GetModuleFileNameEx(hProcess, hModules[j], moduleFilePath, fileNameLen);
+		//		if (len != 0) {
+		//			std::lock_guard<std::mutex> lock(m_modulesMutex);
+		//			LPWSTR fileName = PathFindFileName(moduleFilePath);
+		//			for (DWORD m = 0; m < len; ++m)
+		//				fileName[m] = tolower(fileName[m]);
+		//			if (m_modules.count(fileName) != 0) {
+		//				pids.insert(pid);
+		//				continue;
+		//			}
+		//		}
+		//	}
+		//}
+
+		CloseHandle(hProcess);
 	}
 
-	do {
-		fs::path path(pe32.szExeFile);
-		std::unique_lock<std::mutex> lock(m_modulesMutex);
-		if (m_modules.count(boost::to_lower_copy(path.filename().wstring())) != 0)
-			pids.insert(pe32.th32ProcessID);
-		lock.unlock();
-
-		HANDLE hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pe32.th32ProcessID);
-		if (hModuleSnap != INVALID_HANDLE_VALUE) {
-			MODULEENTRY32 me32;
-			me32.dwSize = sizeof(MODULEENTRY32);
-			if (Module32First(hModuleSnap, &me32)) {
-				do 
-				{
-					path = me32.szModule;
-					lock.lock();
-					if (m_modules.count(boost::to_lower_copy(path.filename().wstring())) != 0)
-						pids.insert(pe32.th32ProcessID);
-					lock.unlock();
-				} while (Module32Next(hModuleSnap, &me32));
-			}
-
-			CloseHandle(hModuleSnap);
-		}
-	} while (Process32Next(hProcessSnap, &pe32));
-
-	CloseHandle(hProcessSnap);
 	return pids;
 }
 
