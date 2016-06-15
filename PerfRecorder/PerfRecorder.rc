@@ -33,7 +33,8 @@ BEGIN
     COMBOBOX        IDC_NETWORK_ADAPTER_CMB,45,7,281,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "Custom1",IDC_REPORT_CTRL,"ReportCtrl",WS_TABSTOP,7,40,319,205
     LTEXT           "过滤模块：",IDC_STATIC,7,25,41,8
-    COMBOBOX        IDC_MODULE_FILTER_CMB,45,23,281,30,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_MODULE_FILTER_CMB,45,23,210,30,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "记录到文件(&R)",IDC_RECORD_TO_FILE_CHK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,260,24,66,10
 END
 
 
@@ -77,41 +78,6 @@ END
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #pragma code_page(1252)
 
-#ifdef APSTUDIO_INVOKED
-/////////////////////////////////////////////////////////////////////////////
-//
-// TEXTINCLUDE
-//
-
-1 TEXTINCLUDE 
-BEGIN
-    "resource.h\0"
-END
-
-2 TEXTINCLUDE 
-BEGIN
-    "#include ""atlres.h""\r\n"
-    "\0"
-END
-
-3 TEXTINCLUDE 
-BEGIN
-    "\0"
-END
-
-#endif    // APSTUDIO_INVOKED
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Icon
-//
-
-// Icon with lowest ID value placed first to ensure application icon
-// remains consistent on all systems.
-IDR_MAINFRAME           ICON                    "res\\PerfRecorder.ico"
-
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // Dialog
@@ -146,6 +112,41 @@ BEGIN
     END
 END
 #endif    // APSTUDIO_INVOKED
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""atlres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON                    "res\\PerfRecorder.ico"
 
 
 /////////////////////////////////////////////////////////////////////////////

@@ -11,7 +11,6 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
-#include <filesystem>
 #include <fstream>
 #include <codecvt>
 #include <locale>
@@ -21,8 +20,6 @@
 #include <TlHelp32.h>
 #include <ProcessResourceUsage.hpp>
 #include <GPUResourceUsage.hpp>
-
-namespace fs = std::experimental::filesystem::v1;
 
 BOOL CMainDlg::PreTranslateMessage(MSG* pMsg)
 {
@@ -65,6 +62,9 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 
 	initNetworkAdapter();
 	initModuleFilter();
+	m_chkRecordToFile.Attach(GetDlgItem(IDC_RECORD_TO_FILE_CHK));
+	m_chkRecordToFile.SetCheck(BST_UNCHECKED);
+	m_recordStatus = rsTerminated;
 
 	m_stopRecord = false;
 	m_recordThread = std::thread(&CMainDlg::run, this);
@@ -211,7 +211,7 @@ void CMainDlg::saveModuleFilter()
 	}
 }
 
-std::wstring CMainDlg::getConfigFile() const
+fs::path CMainDlg::getExeFile() const
 {
 	DWORD nSize = 256;
 	wchar_t *buffer = new wchar_t[nSize];
@@ -222,16 +222,38 @@ std::wstring CMainDlg::getConfigFile() const
 		nSize = GetModuleFileName(_Module.GetModuleInstance(), buffer, nSize);
 	}
 
-	if (nSize != 0) {
-		fs::path path = buffer;
-		delete[] buffer;
+	fs::path path = buffer;
+	delete[] buffer;
 
-		path.replace_extension(L"cfg");
-		return path.wstring();
-	} else {
-		delete[] buffer;
-		return L"PerfRecorder.cfg";
-	}
+	return path;
+}
+
+std::wstring CMainDlg::getConfigFile() const
+{
+	auto path = getExeFile();
+	path.replace_extension(L"cfg");
+	return path.wstring();
+}
+
+std::wstring CMainDlg::getReportFile(const SYSTEMTIME &sysTime) const
+{
+	auto path = getExeFile();
+	wchar_t buffer[256] = { 0 };
+	swprintf_s(buffer, L"%d-%02d-%02d_%02d-%02d-%02d", sysTime.wYear, sysTime.wMonth, sysTime.wDay,
+		sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
+	std::wstring filename(L"PerfReport_");
+	filename += buffer;
+	filename += L".csv";
+	path = path.replace_filename(filename);
+	return path.wstring();
+}
+
+std::wstring FormatSysTime(const SYSTEMTIME &sysTime)
+{
+	wchar_t buffer[256] = { 0 };
+	swprintf_s(buffer, L"%d-%02d-%02d %02d:%02d:%02d:%03d", sysTime.wYear, sysTime.wMonth, sysTime.wDay,
+		sysTime.wHour, sysTime.wMinute, sysTime.wSecond, sysTime.wMilliseconds);
+	return std::wstring(buffer);
 }
 
 void CMainDlg::run()
@@ -244,6 +266,8 @@ void CMainDlg::run()
 	auto prevTime = std::chrono::high_resolution_clock::now() - std::chrono::seconds(1);
 	auto interval = std::chrono::milliseconds(500);
 	std::set<DWORD> prevPids;
+	std::wofstream reportFout;
+	uint32_t processIdSeed = 1;
 
 	while (!m_stopRecord) {
 		auto nowTime = std::chrono::high_resolution_clock::now();
@@ -295,6 +319,52 @@ void CMainDlg::run()
 		m_usageReport.swap(report);
 		PostMessage(WM_REPORT);
 
+		SYSTEMTIME sysTime;
+		GetLocalTime(&sysTime);
+		if (m_recordStatus == rsWaitToStart) {
+			m_recordStatus = rsRecording;
+			reportFout.open(getReportFile(sysTime));
+			reportFout.imbue(std::locale(std::locale::empty(), new std::codecvt_utf8<wchar_t, 0x10ffff, std::generate_header>()));
+			reportFout.precision(2);
+
+			for (size_t i = 0; i < totalUsage.size(); ++i) {
+				auto usage = totalUsage[i];
+				reportFout << L"GPU" << i << L"," << usage->name << endl;
+			}
+
+			reportFout << L"时间,进程ID,CPU利用率,内存,接收速率,发送速率,";
+			for (size_t i = 0; i < totalUsage.size(); ++i) {
+				auto usage = totalUsage[i];
+				reportFout << L"GPU" << i << L"利用率,";
+				reportFout << L"GPU" << i << L"专用内存,";
+				reportFout << L"GPU" << i << L"共享内存,";
+			}
+			
+			reportFout << endl;
+		}
+		else if (m_recordStatus == rsWaitToTerminate) {
+			m_recordStatus = rsTerminated;
+			reportFout.flush();
+			reportFout.close();
+		}
+		else if (m_recordStatus == rsRecording) {
+			for each (auto usage in usages) {
+				reportFout << FormatSysTime(sysTime) << L"," << m_processUniqueId[usage->processId] << L","
+					<< fixed << (usage->cpuUsage * 100) << L"%" << L","
+					<< usage->pagefileUsage << L","
+					<< usage->recvSpeed << L"B/S" << L","
+					<< usage->sendSpeed << L"B/S" << L",";
+
+				for each (auto gpu in usage->gpuUsages) {
+					reportFout << fixed << (gpu->usage * 100) << L"%" << L","
+						<< gpu->dedicatedUsage << L","
+						<< gpu->sharedUsage << L",";
+				}
+
+				reportFout << endl;
+			}
+		}
+
 		// 更新要监测的进程
 		//if (!m_modulesChanged)
 		//	continue;
@@ -305,6 +375,7 @@ void CMainDlg::run()
 		std::set_difference(prevPids.begin(), prevPids.end(), pids.begin(), pids.end(), std::inserter(diffPids, diffPids.end()));
 		for each (auto pid in diffPids) {
 			ProcessResourceUsage::getInstance().removeProcess(pid);
+			m_processUniqueId.erase(pid);
 		}
 
 		// 在现进程集而不在原进程集，则添加到监测中
@@ -312,6 +383,7 @@ void CMainDlg::run()
 		std::set_difference(pids.begin(), pids.end(), prevPids.begin(), prevPids.end(), std::inserter(diffPids, diffPids.end()));
 		for each (auto pid in diffPids) {
 			ProcessResourceUsage::getInstance().addProcess(pid);
+			m_processUniqueId.insert(std::make_pair(pid, processIdSeed++));
 		}
 
 		prevPids.swap(pids);
@@ -497,3 +569,15 @@ LRESULT CMainDlg::OnCbnSelChangeModuleFilter(WORD /*wNotifyCode*/, WORD /*wID*/,
 	return 0;
 }
 
+
+
+LRESULT CMainDlg::OnBnClickedRecordToFileChk(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	if (m_chkRecordToFile.GetCheck() == BST_CHECKED) {
+		m_recordStatus = rsWaitToStart;
+	}
+	else if (m_chkRecordToFile.GetCheck() == BST_UNCHECKED) {
+		m_recordStatus = rsWaitToTerminate;
+	}
+	return 0;
+}

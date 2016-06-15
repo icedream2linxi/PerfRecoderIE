@@ -7,9 +7,21 @@
 #include <mutex>
 #include <string>
 #include <set>
+#include <map>
+#include <filesystem>
 #include "ReportCtrl.h"
 
+namespace fs = std::experimental::filesystem::v1;
+
 #define WM_REPORT	(WM_USER + 100)
+
+enum RecordStatus
+{
+	rsWaitToStart,
+	rsRecording,
+	rsWaitToTerminate,
+	rsTerminated
+};
 
 class CMainDlg : public CDialogImpl<CMainDlg>, public CUpdateUI<CMainDlg>, public CWinDataExchange<CMainDlg>,
 	public CDialogResize<CMainDlg>,
@@ -34,6 +46,7 @@ public:
 		COMMAND_HANDLER(IDC_NETWORK_ADAPTER_CMB, CBN_SELCHANGE, OnCbnSelChangeNetworkAdapter)
 		COMMAND_HANDLER(IDC_MODULE_FILTER_CMB, CBN_SELCHANGE, OnCbnSelChangeModuleFilter)
 		CHAIN_MSG_MAP(CDialogResize<CMainDlg>)
+		COMMAND_HANDLER(IDC_RECORD_TO_FILE_CHK, BN_CLICKED, OnBnClickedRecordToFileChk)
 	END_MSG_MAP()
 
 	BEGIN_DDX_MAP(CMainDlg)
@@ -44,6 +57,7 @@ public:
 		DLGRESIZE_CONTROL(IDC_NETWORK_ADAPTER_CMB, DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDC_MODULE_FILTER_CMB, DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDC_REPORT_CTRL, DLSZ_SIZE_X | DLSZ_SIZE_Y)
+		DLGRESIZE_CONTROL(IDC_RECORD_TO_FILE_CHK, DLSZ_MOVE_X)
 	END_DLGRESIZE_MAP()
 
 // Handler prototypes (uncomment arguments if needed):
@@ -59,8 +73,10 @@ public:
 
 	LRESULT OnCbnSelChangeNetworkAdapter(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCbnSelChangeModuleFilter(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnBnClickedRecordToFileChk(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 	LRESULT OnReport(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	void OnModuleFilterInputed();
 
 	void CloseDialog(int nVal);
 
@@ -70,11 +86,14 @@ private:
 	void clearAndResetModuleFilter();
 	void loadModuleFilter();
 	void saveModuleFilter();
+
+	fs::path getExeFile() const;
 	std::wstring getConfigFile() const;
+	std::wstring getReportFile(const SYSTEMTIME &sysTime) const;
+
 	void run();
 	std::wstring getProcessFileName(DWORD pid);
 	std::wstring formatSize(uint64_t size);
-	void OnModuleFilterInputed();
 	std::set<DWORD> filterProcessId();
 	void setNewModuleFilter(const wchar_t *filter);
 
@@ -83,6 +102,7 @@ private:
 	CComboBox m_cmbModuleFilter;
 	HWND m_hEdModuleFilter;
 	CReportCtrl m_reportCtrl;
+	CButton m_chkRecordToFile;
 
 	std::set<std::wstring> m_modules;
 	bool m_modulesChanged;
@@ -92,4 +112,7 @@ private:
 	bool m_stopRecord;
 	std::wstring m_usageReport;
 	std::mutex m_usageReportMutex;
+
+	RecordStatus m_recordStatus;
+	std::map<DWORD, uint32_t> m_processUniqueId;
 };
