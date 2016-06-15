@@ -50,9 +50,8 @@ public:
 
 private:
 	void init();
-	void recordCpuUsage();
+	void recordCpuAndMemoryUsage();
 	void recordNetworkUsage();
-	void recordMemoryUsage();
 	void networkThreadRun();
 
 private:

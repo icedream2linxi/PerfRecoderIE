@@ -85,9 +85,8 @@ ProcessResourceUsage & ProcessResourceUsage::getInstance()
 
 void ProcessResourceUsage::record()
 {
-	recordCpuUsage();
+	recordCpuAndMemoryUsage();
 	recordNetworkUsage();
-	recordMemoryUsage();
 
 	ProcessGPUsage::getInstance().record();
 	for each (auto item in m_resourceUsages) {
@@ -185,7 +184,7 @@ void ProcessResourceUsage::init()
 	m_networkThread = std::thread(&ProcessResourceUsage::networkThreadRun, this);
 }
 
-void ProcessResourceUsage::recordCpuUsage()
+void ProcessResourceUsage::recordCpuAndMemoryUsage()
 {
 	PhpUpdateCpuInformation(TRUE, &m_sysTotalTime);
 
@@ -215,6 +214,9 @@ void ProcessResourceUsage::recordCpuUsage()
 			userCpuUsage = (FLOAT)assist->CpuUserDelta->Delta / m_sysTotalTime;
 			newCpuUsage = kernelCpuUsage + userCpuUsage;
 			usage->cpuUsage = newCpuUsage;
+
+			InterlockedExchange(&usage->workingSetSize, process->WorkingSetSize);
+			InterlockedExchange(&usage->pagefileUsage, process->PagefileUsage);
 		}
 	} while (process = PH_NEXT_PROCESS(process));
 
@@ -263,36 +265,6 @@ void ProcessResourceUsage::recordNetworkUsage()
 		total = std::accumulate(sizes.begin(), sizes.end(), total);
 		InterlockedExchange(&resource->recvSpeed, total.recv / duration.count());
 		InterlockedExchange(&resource->sendSpeed, total.send / duration.count());
-	}
-}
-
-void ProcessResourceUsage::recordMemoryUsage()
-{
-	std::vector<decltype(m_resourceUsages)::key_type> pids;
-	{
-		std::lock_guard<std::mutex> lock(m_resourceUsagesMutex);
-		for (auto &item : m_resourceUsages)
-			pids.push_back(item.first);
-	}
-
-	for (auto pid : pids) {
-		std::unique_lock<std::mutex> lock(m_resourceUsagesMutex);
-		auto iter = m_resourceUsages.find(pid);
-		if (iter == m_resourceUsages.end())
-			continue;
-
-		auto resource = iter->second.first;
-		lock.unlock();
-
-		PROCESS_MEMORY_COUNTERS_EX mem;
-
-		HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
-		GetProcessMemoryInfo(hProcess, (PROCESS_MEMORY_COUNTERS*)&mem, sizeof(PROCESS_MEMORY_COUNTERS_EX));
-
-		InterlockedExchange(&resource->workingSetSize, mem.WorkingSetSize);
-		InterlockedExchange(&resource->pagefileUsage, mem.PagefileUsage);
-
-		CloseHandle(hProcess);
 	}
 }
 
