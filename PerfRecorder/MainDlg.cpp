@@ -329,7 +329,10 @@ void CMainDlg::run()
 
 			for (size_t i = 0; i < totalUsage.size(); ++i) {
 				auto usage = totalUsage[i];
-				reportFout << L"GPU" << i << L"," << usage->name << endl;
+				reportFout << L"GPU" << i << L"," << usage->name
+					<< L",专用显存," << usage->dedicatedLimit
+					<< L",共享显存," << usage->sharedLimit
+					<< endl;
 			}
 
 			reportFout << L"时间,进程ID,CPU利用率,内存,接收速率,发送速率,";
