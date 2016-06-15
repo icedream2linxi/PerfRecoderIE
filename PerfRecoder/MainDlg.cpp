@@ -11,13 +11,27 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
+#include <filesystem>
+#include <fstream>
+#include <codecvt>
+#include <locale>
+#include <boost/algorithm/string.hpp>
 #include <psapi.h>
 #include <winbase.h>
+#include <TlHelp32.h>
 #include <ProcessResourceUsage.hpp>
 #include <GPUResourceUsage.hpp>
 
+namespace fs = std::experimental::filesystem::v1;
+
 BOOL CMainDlg::PreTranslateMessage(MSG* pMsg)
 {
+	if (pMsg->message == WM_KEYDOWN) {
+		if (pMsg->wParam == VK_ESCAPE)
+			return TRUE;
+	}
+	if (pMsg->message == WM_KEYUP && pMsg->wParam == VK_RETURN && pMsg->hwnd == m_hEdModuleFilter)
+		OnModuleFilterInputed();
 	return CWindow::IsDialogMessage(pMsg);
 }
 
@@ -49,9 +63,8 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 
 	DlgResize_Init();
 
-	m_cmbNewtorkAdapter.Attach(GetDlgItem(IDC_NETWORK_ADAPTER_CMB));
-
 	initNetworkAdapter();
+	initModuleFilter();
 
 	m_stopRecord = false;
 	m_recordThread = std::thread(&CMainDlg::run, this);
@@ -83,7 +96,7 @@ LRESULT CMainDlg::OnAppAbout(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*
 LRESULT CMainDlg::OnOK(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
 	// TODO: Add validation code 
-	CloseDialog(wID);
+	//CloseDialog(wID);
 	return 0;
 }
 
@@ -102,6 +115,8 @@ void CMainDlg::CloseDialog(int nVal)
 
 void CMainDlg::initNetworkAdapter()
 {
+	m_cmbNewtorkAdapter.Attach(GetDlgItem(IDC_NETWORK_ADAPTER_CMB));
+
 	auto adapters = ProcessResourceUsage::getInstance().getNetworkInterfaceNames();
 	for each (auto adapter in adapters) {
 		m_cmbNewtorkAdapter.AddString(adapter.c_str());
@@ -113,19 +128,124 @@ void CMainDlg::initNetworkAdapter()
 	}
 }
 
-#include <codecvt>
-#include <locale>
+void CMainDlg::initModuleFilter()
+{
+	m_cmbModuleFilter.Attach(GetDlgItem(IDC_MODULE_FILTER_CMB));
+	COMBOBOXINFO comboBoxInfo;
+	comboBoxInfo.cbSize = sizeof(COMBOBOXINFO);
+	m_cmbModuleFilter.GetComboBoxInfo(&comboBoxInfo);
+	m_hEdModuleFilter = comboBoxInfo.hwndItem;
+
+	loadModuleFilter();
+
+	if (m_cmbModuleFilter.GetCount() == 0) {
+		std::vector<std::wstring> filters = {
+			L"osgviewerMFC.exe"
+		};
+
+		for each (auto filter in filters) {
+			m_cmbModuleFilter.AddString(filter.c_str());
+		}
+
+		saveModuleFilter();
+	}
+
+	m_cmbModuleFilter.SetCurSel(0);
+	m_cmbModuleFilter.AddString(L"清除并重置...");
+
+	CString filter;
+	m_cmbModuleFilter.GetLBText(0, filter.GetBuffer(m_cmbModuleFilter.GetLBTextLen(0)));
+	filter.ReleaseBuffer();
+	setNewModuleFilter(filter);
+}
+
+void CMainDlg::clearAndResetModuleFilter()
+{
+	m_cmbModuleFilter.ResetContent();
+
+	if (m_cmbModuleFilter.GetCount() == 0) {
+		std::vector<std::wstring> filters = {
+			L"osgviewerMFC.exe"
+		};
+
+		for each (auto filter in filters) {
+			m_cmbModuleFilter.AddString(filter.c_str());
+		}
+
+		saveModuleFilter();
+	}
+
+	m_cmbModuleFilter.SetCurSel(0);
+	m_cmbModuleFilter.AddString(L"清除并重置...");
+
+	CString filter;
+	m_cmbModuleFilter.GetLBText(0, filter.GetBuffer(m_cmbModuleFilter.GetLBTextLen(0)));
+	filter.ReleaseBuffer();
+	setNewModuleFilter(filter);
+}
+
+void CMainDlg::loadModuleFilter()
+{
+	auto cfgFile = getConfigFile();
+
+	std::wifstream fin(cfgFile);
+	fin.imbue(std::locale(std::locale::empty(), new std::codecvt_utf8<wchar_t, 0x10ffff, std::consume_header>()));
+	std::wstring filter;
+	while (std::getline(fin, filter)) {
+		m_cmbModuleFilter.AddString(filter.c_str());
+	}
+}
+
+void CMainDlg::saveModuleFilter()
+{
+	auto cfgFile = getConfigFile();
+
+	std::wofstream fin(cfgFile);
+	fin.imbue(std::locale(std::locale::empty(), new std::codecvt_utf8<wchar_t, 0x10ffff, std::generate_header>()));
+	int count = m_cmbModuleFilter.GetCount() - 1;
+	for (int i = 0; i < count; ++i) {
+		CString filter;
+		m_cmbModuleFilter.GetLBText(i, filter.GetBuffer(m_cmbModuleFilter.GetLBTextLen(i)));
+		filter.ReleaseBuffer();
+		fin << static_cast<const wchar_t*>(filter) << std::endl;
+	}
+}
+
+std::wstring CMainDlg::getConfigFile() const
+{
+	DWORD nSize = 256;
+	wchar_t *buffer = new wchar_t[nSize];
+	nSize = GetModuleFileName(_Module.GetModuleInstance(), buffer, nSize);
+	if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+		delete[] buffer;
+		buffer = new wchar_t[nSize];
+		nSize = GetModuleFileName(_Module.GetModuleInstance(), buffer, nSize);
+	}
+
+	if (nSize != 0) {
+		fs::path path = buffer;
+		delete[] buffer;
+
+		path.replace_extension(L"cfg");
+		return path.wstring();
+	} else {
+		delete[] buffer;
+		return L"PerfRecorder.cfg";
+	}
+}
+
 void CMainDlg::run()
 {
 	//ProcessResourceUsage::getInstance().addProcess(40080);
-	ProcessResourceUsage::getInstance().addProcess(7236);
+	//ProcessResourceUsage::getInstance().addProcess(7236);
 	const std::wstring tab = L"    ";
 	const std::wstring CRLN = L"\r\n";
 
-	std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
+	std::wstring_convert<std::codecvt<wchar_t, char, mbstate_t>> cvt;
 
 	auto prevTime = std::chrono::high_resolution_clock::now() - std::chrono::seconds(1);
 	auto interval = std::chrono::milliseconds(500);
+	std::set<DWORD> prevPids;
 
 	while (!m_stopRecord) {
 		auto nowTime = std::chrono::high_resolution_clock::now();
@@ -176,6 +296,27 @@ void CMainDlg::run()
 		std::lock_guard<std::mutex> lock(m_usageReportMutex);
 		m_usageReport.swap(report);
 		PostMessage(WM_REPORT);
+
+		// 更新要监测的进程
+		if (!m_modulesChanged)
+			continue;
+		auto pids = filterProcessId();
+		m_modulesChanged = false;
+		std::set<DWORD> diffPids;
+		// 在原进程集中而不在现进程集，则将其删除
+		std::set_difference(prevPids.begin(), prevPids.end(), pids.begin(), pids.end(), std::inserter(diffPids, diffPids.end()));
+		for each (auto pid in diffPids) {
+			ProcessResourceUsage::getInstance().removeProcess(pid);
+		}
+
+		// 在现进程集而不在原进程集，则添加到监测中
+		diffPids.clear();
+		std::set_difference(pids.begin(), pids.end(), prevPids.begin(), prevPids.end(), std::inserter(diffPids, diffPids.end()));
+		for each (auto pid in diffPids) {
+			ProcessResourceUsage::getInstance().addProcess(pid);
+		}
+
+		prevPids.swap(pids);
 	}
 }
 
@@ -214,6 +355,97 @@ std::wstring CMainDlg::formatSize(uint64_t size)
 	return std::wstring(buffer);
 }
 
+void CMainDlg::OnModuleFilterInputed()
+{
+	CString inputedFilter;
+	int len = m_cmbModuleFilter.GetWindowTextLength() + 1;
+	m_cmbModuleFilter.GetWindowText(inputedFilter.GetBuffer(len), len);
+	inputedFilter.ReleaseBuffer(len);
+
+	int count = m_cmbModuleFilter.GetCount() - 1;
+	int idx = -1;
+	for (int i = 0; i < count; ++i) {
+		CString filter;
+		m_cmbModuleFilter.GetLBText(i, filter.GetBuffer(m_cmbModuleFilter.GetLBTextLen(i)));
+		filter.ReleaseBuffer();
+
+		if (filter.CompareNoCase(inputedFilter) == 0) {
+			idx = i;
+			break;
+		}
+	}
+
+	if (idx >= 0)
+		m_cmbModuleFilter.DeleteString(idx);
+	m_cmbModuleFilter.InsertString(0, inputedFilter);
+
+	saveModuleFilter();
+
+	CString filter;
+	m_cmbModuleFilter.GetLBText(0, filter.GetBuffer(m_cmbModuleFilter.GetLBTextLen(0)));
+	filter.ReleaseBuffer();
+	setNewModuleFilter(filter);
+}
+
+std::set<DWORD> CMainDlg::filterProcessId()
+{
+	std::set<DWORD> pids;
+	HANDLE hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (hProcessSnap == INVALID_HANDLE_VALUE)
+		return pids;
+
+	PROCESSENTRY32 pe32;
+	pe32.dwSize = sizeof(PROCESSENTRY32);
+	if (!Process32First(hProcessSnap, &pe32)) {
+		CloseHandle(hProcessSnap);
+		return pids;
+	}
+
+	do {
+		fs::path path(pe32.szExeFile);
+		std::unique_lock<std::mutex> lock(m_modulesMutex);
+		if (m_modules.count(boost::to_lower_copy(path.filename().wstring())) != 0)
+			pids.insert(pe32.th32ProcessID);
+		lock.unlock();
+
+		HANDLE hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pe32.th32ProcessID);
+		if (hModuleSnap != INVALID_HANDLE_VALUE) {
+			MODULEENTRY32 me32;
+			me32.dwSize = sizeof(MODULEENTRY32);
+			if (Module32First(hModuleSnap, &me32)) {
+				do 
+				{
+					path = me32.szModule;
+					lock.lock();
+					if (m_modules.count(boost::to_lower_copy(path.filename().wstring())) != 0)
+						pids.insert(pe32.th32ProcessID);
+					lock.unlock();
+				} while (Module32Next(hModuleSnap, &me32));
+			}
+
+			CloseHandle(hModuleSnap);
+		}
+	} while (Process32Next(hProcessSnap, &pe32));
+
+	CloseHandle(hProcessSnap);
+	return pids;
+}
+
+void CMainDlg::setNewModuleFilter(const wchar_t *filter)
+{
+	std::wstring tempFilter(filter);
+	boost::to_lower(tempFilter);
+	std::vector<std::wstring> modules;
+	boost::split(modules, tempFilter, boost::is_any_of(L"|"));
+
+	std::lock_guard<std::mutex> lock(m_modulesMutex);
+	m_modules.clear();
+	for each (auto &module in modules) {
+		m_modules.insert(boost::trim_copy(module));
+	}
+	m_modulesChanged = true;
+}
+
 LRESULT CMainDlg::OnCbnSelChangeNetworkAdapter(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
 	auto idx = m_cmbNewtorkAdapter.GetCurSel();
@@ -230,10 +462,30 @@ LRESULT CMainDlg::OnReport(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, 
 	}
 
 	m_reportCtrl.update(report);
-	//auto pos = m_edResourceUsage.GetScrollPos(SB_VERT);
-	////m_edResourceUsage.SetWindowText(report.c_str());
-	//m_edResourceUsage.SetSelAll(TRUE);
-	//m_edResourceUsage.ReplaceSel(report.c_str());
-	//m_edResourceUsage.SetScrollPos(SB_VERT, pos);
 	return 0;
 }
+
+
+LRESULT CMainDlg::OnCbnSelChangeModuleFilter(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	auto idx = m_cmbModuleFilter.GetCurSel();
+	if (idx == 0)
+		return 0;
+
+	if (idx == m_cmbModuleFilter.GetCount() - 1)
+		clearAndResetModuleFilter();
+	else {
+		CString filter;
+		m_cmbModuleFilter.GetLBText(idx, filter.GetBuffer(m_cmbModuleFilter.GetLBTextLen(idx)));
+		filter.ReleaseBuffer();
+		setNewModuleFilter(filter);
+
+		m_cmbModuleFilter.DeleteString(idx);
+		m_cmbModuleFilter.InsertString(0, filter);
+		m_cmbModuleFilter.SetCurSel(0);
+		saveModuleFilter();
+	}
+
+	return 0;
+}
+

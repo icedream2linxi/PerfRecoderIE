@@ -6,6 +6,7 @@
 #include <thread>
 #include <mutex>
 #include <string>
+#include <set>
 #include "ReportCtrl.h"
 
 #define WM_REPORT	(WM_USER + 100)
@@ -31,6 +32,7 @@ public:
 		COMMAND_ID_HANDLER(IDOK, OnOK)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		COMMAND_HANDLER(IDC_NETWORK_ADAPTER_CMB, CBN_SELCHANGE, OnCbnSelChangeNetworkAdapter)
+		COMMAND_HANDLER(IDC_MODULE_FILTER_CMB, CBN_SELCHANGE, OnCbnSelChangeModuleFilter)
 		CHAIN_MSG_MAP(CDialogResize<CMainDlg>)
 	END_MSG_MAP()
 
@@ -39,6 +41,8 @@ public:
 	END_DDX_MAP()
 
 	BEGIN_DLGRESIZE_MAP(CMainDlg)
+		DLGRESIZE_CONTROL(IDC_NETWORK_ADAPTER_CMB, DLSZ_SIZE_X)
+		DLGRESIZE_CONTROL(IDC_MODULE_FILTER_CMB, DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDC_REPORT_CTRL, DLSZ_SIZE_X | DLSZ_SIZE_Y)
 	END_DLGRESIZE_MAP()
 
@@ -54,6 +58,7 @@ public:
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 	LRESULT OnCbnSelChangeNetworkAdapter(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnCbnSelChangeModuleFilter(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 	LRESULT OnReport(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
@@ -61,13 +66,27 @@ public:
 
 private:
 	void initNetworkAdapter();
+	void initModuleFilter();
+	void clearAndResetModuleFilter();
+	void loadModuleFilter();
+	void saveModuleFilter();
+	std::wstring getConfigFile() const;
 	void run();
 	std::wstring getProcessFileName(DWORD pid);
 	std::wstring formatSize(uint64_t size);
+	void OnModuleFilterInputed();
+	std::set<DWORD> filterProcessId();
+	void setNewModuleFilter(const wchar_t *filter);
 
 private:
 	CComboBox m_cmbNewtorkAdapter;
+	CComboBox m_cmbModuleFilter;
+	HWND m_hEdModuleFilter;
 	CReportCtrl m_reportCtrl;
+
+	std::set<std::wstring> m_modules;
+	bool m_modulesChanged;
+	std::mutex m_modulesMutex;
 
 	std::thread m_recordThread;
 	bool m_stopRecord;
