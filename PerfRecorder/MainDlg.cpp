@@ -60,6 +60,11 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 
 	DlgResize_Init();
 
+	auto msg = ProcessResourceUsage::detectEnvironment();
+	if (!msg.empty()) {
+		MessageBox(msg.c_str(), L"´íÎó", MB_OK | MB_ICONERROR);
+	}
+
 	initNetworkAdapter();
 	initModuleFilter();
 	m_chkRecordToFile.Attach(GetDlgItem(IDC_RECORD_TO_FILE_CHK));

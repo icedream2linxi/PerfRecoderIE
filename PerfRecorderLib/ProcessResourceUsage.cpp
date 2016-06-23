@@ -160,14 +160,32 @@ std::vector<std::shared_ptr<TotalGPUsageData>> ProcessResourceUsage::getTotalUsa
 	return ProcessGPUsage::getInstance().getTotalUsage();
 }
 
-void ProcessResourceUsage::init()
+std::wstring ProcessResourceUsage::detectEnvironment()
+{
+	std::wstring msg;
+	auto hDll = ::LoadLibraryA("wpcap.dll");
+	if (hDll != NULL) {
+		FreeLibrary(hDll);
+		hDll = NULL;
+	}
+	else {
+		msg = L"ÇëÏÈ°²×°WinPcap!";
+	}
+
+	return msg;
+}
+
+bool ProcessResourceUsage::init()
 {
 	PhpInit();
 
 	m_pcap.reset(new PcapSource);
 	m_portCache.reset(new PortCache);
 
-	m_pcap->Initialize();
+	bool ret = m_pcap->Initialize();
+	if (!ret)
+		return ret;
+
 	auto count = m_pcap->EnumDevices();
 	bool isSelected = false;
 	for (decltype(count) i = 0; i < count; ++i) {
@@ -182,6 +200,7 @@ void ProcessResourceUsage::init()
 
 	m_networkThreadStop = false;
 	m_networkThread = std::thread(&ProcessResourceUsage::networkThreadRun, this);
+	return true;
 }
 
 void ProcessResourceUsage::recordCpuAndMemoryUsage()

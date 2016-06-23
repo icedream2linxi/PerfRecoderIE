@@ -47,9 +47,10 @@ public:
 	std::vector<std::shared_ptr<ResourceUsage>> getUsages() const;
 
 	static std::vector<std::shared_ptr<TotalGPUsageData>> getTotalUsage();
+	static std::wstring detectEnvironment();
 
 private:
-	void init();
+	bool init();
 	void recordCpuAndMemoryUsage();
 	void recordNetworkUsage();
 	void networkThreadRun();
