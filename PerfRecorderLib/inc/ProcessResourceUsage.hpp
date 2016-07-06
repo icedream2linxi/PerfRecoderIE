@@ -7,6 +7,7 @@
 #include <thread>
 #include <chrono>
 #include <ratio>
+#include <limits>
 #include "TypeDefine.hpp"
 
 class PcapSource;
@@ -21,6 +22,7 @@ struct GPUsage
 	uint64_t sharedUsage;
 };
 
+constexpr uint32_t INVALID_FPS = std::numeric_limits<uint32_t>::max();
 struct ResourceUsage
 {
 	DWORD processId;
@@ -29,8 +31,12 @@ struct ResourceUsage
 	uint64_t sendSpeed;
 	uint64_t workingSetSize;
 	uint64_t pagefileUsage;
+	uint32_t osgFps;
+	uint32_t webFps;
 
 	std::vector<std::shared_ptr<GPUsage>> gpuUsages;
+
+	ResourceUsage();
 };
 
 class ProcessResourceUsage
@@ -53,6 +59,7 @@ private:
 	bool init();
 	void recordCpuAndMemoryUsage();
 	void recordNetworkUsage();
+	void recordFps();
 	void networkThreadRun();
 
 private:

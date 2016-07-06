@@ -311,6 +311,12 @@ void CMainDlg::run()
 			ss << tab << L"内存：" << formatSize(usage->pagefileUsage) << CRLN << flush;
 			ss << tab << L"接收速率：" << formatSize(usage->recvSpeed) << L"/S" << CRLN << flush;
 			ss << tab << L"发送速率：" << formatSize(usage->sendSpeed) << L"/S" << CRLN << flush;
+			if (usage->osgFps != INVALID_FPS) {
+				ss << tab << L"OSG FPS：" << usage->osgFps << CRLN << flush;
+			}
+			if (usage->webFps != INVALID_FPS) {
+				ss << tab << L"Web FPS：" << usage->webFps << CRLN << flush;
+			}
 			for each (auto gpu in usage->gpuUsages) {
 				ss << tab << gpu->adapterName << CRLN << flush;
 				ss << tab << tab << L"GPU利用率：" << fixed << (gpu->usage * 100) << L"%" << CRLN << flush;
@@ -340,7 +346,7 @@ void CMainDlg::run()
 					<< endl;
 			}
 
-			reportFout << L"时间,进程ID,CPU利用率,内存,接收速率,发送速率,";
+			reportFout << L"时间,进程ID,CPU利用率,内存,接收速率,发送速率,OSG FPS,Web FPS,";
 			for (size_t i = 0; i < totalUsage.size(); ++i) {
 				auto usage = totalUsage[i];
 				reportFout << L"GPU" << i << L"利用率,";
@@ -362,6 +368,13 @@ void CMainDlg::run()
 					<< usage->pagefileUsage << L","
 					<< usage->recvSpeed << L"B/S" << L","
 					<< usage->sendSpeed << L"B/S" << L",";
+
+				if (usage->osgFps != INVALID_FPS)
+					reportFout << usage->osgFps;
+				reportFout << L",";
+				if (usage->webFps != INVALID_FPS)
+					reportFout << usage->webFps;
+				reportFout << L",";
 
 				for each (auto gpu in usage->gpuUsages) {
 					reportFout << fixed << (gpu->usage * 100) << L"%" << L","

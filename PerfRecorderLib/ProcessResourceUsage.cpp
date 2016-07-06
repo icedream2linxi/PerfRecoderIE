@@ -8,6 +8,14 @@
 #include "PortCache.h"
 #include "ProcessGPUsage.hpp"
 
+struct FpsInfo
+{
+	uint32_t osgFps;
+	uint64_t osgTime;
+	uint32_t webFps;
+	uint64_t webTime;
+};
+
 struct NetworkTransmittedSize
 {
 	uint64_t recv;
@@ -30,6 +38,7 @@ struct NetworkTransmittedSize
 
 struct ResourceUsageRecordAssist
 {
+	DWORD pid;
 	PH_UINT64_DELTA *CpuKernelDelta;
 	PH_UINT64_DELTA *CpuUserDelta;
 
@@ -37,16 +46,33 @@ struct ResourceUsageRecordAssist
 	std::mutex networkMutex;
 	std::chrono::high_resolution_clock::time_point prevTime;
 
-	ResourceUsageRecordAssist();
+	uint64_t osgTime;
+	uint64_t webTime;
+	HANDLE hFPSMapFile;
+	// 下面两个变量是为避免初始化过早，被监测程序还未FileMapping；如果构造函数中获取FileMapping失败，则等超过1秒后在recordFPS中获取一次。
+	bool isFPSInited;
+	std::chrono::high_resolution_clock::time_point fpsPrevInitTime;
+
+	ResourceUsageRecordAssist(DWORD pid);
 	~ResourceUsageRecordAssist();
+
+	void initFPS();
 };
 
-ResourceUsageRecordAssist::ResourceUsageRecordAssist()
+ResourceUsageRecordAssist::ResourceUsageRecordAssist(DWORD _pid)
 	: CpuKernelDelta(new PH_UINT64_DELTA)
 	, CpuUserDelta(new PH_UINT64_DELTA)
 	, prevTime(std::chrono::high_resolution_clock::now())
+	, hFPSMapFile(NULL)
+	, pid(_pid)
+	, osgTime(0)
+	, webTime(0)
 {
-
+	initFPS();
+	if (hFPSMapFile == NULL)
+		fpsPrevInitTime = std::chrono::high_resolution_clock::now();
+	else
+		isFPSInited = true;
 }
 
 ResourceUsageRecordAssist::~ResourceUsageRecordAssist()
@@ -60,6 +86,18 @@ ResourceUsageRecordAssist::~ResourceUsageRecordAssist()
 		delete CpuUserDelta;
 		CpuUserDelta = nullptr;
 	}
+
+	if (hFPSMapFile != NULL) {
+		CloseHandle(hFPSMapFile);
+		hFPSMapFile = NULL;
+	}
+}
+
+void ResourceUsageRecordAssist::initFPS()
+{
+	wchar_t uniqueName[64];
+	swprintf_s(uniqueName, L"FTK%d", pid);
+	hFPSMapFile = OpenFileMapping(FILE_MAP_READ, FALSE, uniqueName);
 }
 
 ProcessResourceUsage::ProcessResourceUsage()
@@ -109,6 +147,8 @@ void ProcessResourceUsage::record()
 			tempGPUsage->sharedUsage = gpu->sharedUsage;
 		}
 	}
+
+	recordFps();
 }
 
 void ProcessResourceUsage::addProcess(DWORD pid)
@@ -119,7 +159,7 @@ void ProcessResourceUsage::addProcess(DWORD pid)
 
 	auto usage = std::make_shared<ResourceUsage>();
 	usage->processId = pid;
-	auto assist = std::make_shared<ResourceUsageRecordAssist>();
+	auto assist = std::make_shared<ResourceUsageRecordAssist>(pid);
 	m_resourceUsages.insert(std::make_pair(pid, std::make_pair(usage, assist)));
 
 	ProcessGPUsage::getInstance().addProcess(pid);
@@ -287,6 +327,43 @@ void ProcessResourceUsage::recordNetworkUsage()
 	}
 }
 
+void ProcessResourceUsage::recordFps()
+{
+	for (auto item : m_resourceUsages) {
+		auto usage = item.second.first;
+		auto assist = item.second.second;
+
+		if (assist->hFPSMapFile == NULL) {
+			if (assist->isFPSInited)
+				continue;
+
+			auto now = std::chrono::high_resolution_clock::now();
+			if (now - assist->fpsPrevInitTime < std::chrono::seconds(1))
+				continue;
+			assist->initFPS();
+			assist->isFPSInited = true;
+			if (assist->hFPSMapFile == NULL)
+				continue;
+		}
+
+		auto fpsInfo = (FpsInfo*)MapViewOfFile(assist->hFPSMapFile, FILE_MAP_READ, 0, 0, sizeof(FpsInfo));
+		if (assist->osgTime == fpsInfo->osgTime)
+			usage->osgFps = 0;
+		else {
+			usage->osgFps = fpsInfo->osgFps;
+			assist->osgTime = fpsInfo->osgTime;
+		}
+
+		if (assist->webTime == fpsInfo->webTime)
+			usage->webFps = 0;
+		else {
+			usage->webFps = fpsInfo->webFps;
+			assist->webTime = fpsInfo->webTime;
+		}
+		UnmapViewOfFile(fpsInfo);
+	}
+}
+
 void ProcessResourceUsage::networkThreadRun()
 {
 	while (!m_networkThreadStop)
@@ -328,4 +405,17 @@ void ProcessResourceUsage::networkThreadRun()
 		std::lock_guard<std::mutex> sizeLock(assist->networkMutex);
 		assist->networkTransmittedSize.push_back(size);
 	}
+}
+
+ResourceUsage::ResourceUsage()
+	: processId(0)
+	, cpuUsage(0.0f)
+	, recvSpeed(0)
+	, sendSpeed(0)
+	, workingSetSize(0)
+	, pagefileUsage(0)
+	, osgFps(INVALID_FPS)
+	, webFps(INVALID_FPS)
+{
+
 }
