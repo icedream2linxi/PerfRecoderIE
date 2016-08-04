@@ -64,6 +64,7 @@ ResourceUsageRecordAssist::ResourceUsageRecordAssist(DWORD _pid)
 	, CpuUserDelta(new PH_UINT64_DELTA)
 	, prevTime(std::chrono::high_resolution_clock::now())
 	, hFPSMapFile(NULL)
+	, isFPSInited(false)
 	, pid(_pid)
 	, osgTime(0)
 	, webTime(0)
@@ -338,7 +339,7 @@ void ProcessResourceUsage::recordFps()
 				continue;
 
 			auto now = std::chrono::high_resolution_clock::now();
-			if (now - assist->fpsPrevInitTime < std::chrono::seconds(1))
+			if (now - assist->fpsPrevInitTime < std::chrono::seconds(5))
 				continue;
 			assist->initFPS();
 			assist->isFPSInited = true;
