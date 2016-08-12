@@ -1,19 +1,25 @@
-#include "stdafx.h"
+ï»¿#include "stdafx.h"
 #include "ProcessResourceUsage.hpp"
 #include <numeric>
 #include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
 #include <psapi.h>
 #include "CpuUsage.hpp"
 #include "PcapSource.h"
 #include "PortCache.h"
 #include "ProcessGPUsage.hpp"
 
+#include <websocketpp/config/asio_no_tls_client.hpp>
+#include <websocketpp/client.hpp>
+#include <rapidjson/document.h>
+#include <rapidjson/reader.h>
+
+typedef websocketpp::client<websocketpp::config::asio_client> wsclient;
+typedef websocketpp::config::asio_client::message_type::ptr message_ptr;
+
 struct FpsInfo
 {
-	uint32_t osgFps;
-	uint64_t osgTime;
-	uint32_t webFps;
-	uint64_t webTime;
+	uint16_t port;
 };
 
 struct NetworkTransmittedSize
@@ -46,17 +52,21 @@ struct ResourceUsageRecordAssist
 	std::mutex networkMutex;
 	std::chrono::high_resolution_clock::time_point prevTime;
 
-	uint64_t osgTime;
-	uint64_t webTime;
+	int64_t osgFps;
+	int64_t webFps;
 	HANDLE hFPSMapFile;
-	// ÏÂÃæÁ½¸ö±äÁ¿ÊÇÎª±ÜÃâ³õÊ¼»¯¹ýÔç£¬±»¼à²â³ÌÐò»¹Î´FileMapping£»Èç¹û¹¹Ôìº¯ÊýÖÐ»ñÈ¡FileMappingÊ§°Ü£¬ÔòµÈ³¬¹ý1ÃëºóÔÚrecordFPSÖÐ»ñÈ¡Ò»´Î¡£
+	// ä¸‹é¢ä¸¤ä¸ªå˜é‡æ˜¯ä¸ºé¿å…åˆå§‹åŒ–è¿‡æ—©ï¼Œè¢«ç›‘æµ‹ç¨‹åºè¿˜æœªFileMappingï¼›å¦‚æžœæž„é€ å‡½æ•°ä¸­èŽ·å–FileMappingå¤±è´¥ï¼Œåˆ™ç­‰è¶…è¿‡1ç§’åŽåœ¨recordFPSä¸­èŽ·å–ä¸€æ¬¡ã€‚
 	bool isFPSInited;
 	std::chrono::high_resolution_clock::time_point fpsPrevInitTime;
+
+	wsclient fpsMonitor;
+	std::thread monitorThread;
 
 	ResourceUsageRecordAssist(DWORD pid);
 	~ResourceUsageRecordAssist();
 
 	void initFPS();
+	void onMessage(websocketpp::connection_hdl hdl, message_ptr msg);
 };
 
 ResourceUsageRecordAssist::ResourceUsageRecordAssist(DWORD _pid)
@@ -66,8 +76,8 @@ ResourceUsageRecordAssist::ResourceUsageRecordAssist(DWORD _pid)
 	, hFPSMapFile(NULL)
 	, isFPSInited(false)
 	, pid(_pid)
-	, osgTime(0)
-	, webTime(0)
+	, osgFps(0)
+	, webFps(0)
 {
 	initFPS();
 	if (hFPSMapFile == NULL)
@@ -78,6 +88,9 @@ ResourceUsageRecordAssist::ResourceUsageRecordAssist(DWORD _pid)
 
 ResourceUsageRecordAssist::~ResourceUsageRecordAssist()
 {
+	fpsMonitor.stop();
+	if (monitorThread.joinable())
+		monitorThread.join();
 	if (CpuKernelDelta != nullptr) {
 		delete CpuKernelDelta;
 		CpuKernelDelta = nullptr;
@@ -99,6 +112,48 @@ void ResourceUsageRecordAssist::initFPS()
 	wchar_t uniqueName[64];
 	swprintf_s(uniqueName, L"FTK%d", pid);
 	hFPSMapFile = OpenFileMapping(FILE_MAP_READ, FALSE, uniqueName);
+	if (hFPSMapFile != NULL)
+	{
+		auto fpsInfo = (FpsInfo*)MapViewOfFile(hFPSMapFile, FILE_MAP_READ, 0, 0, sizeof(FpsInfo));
+		auto port = fpsInfo->port;
+		UnmapViewOfFile(fpsInfo);
+
+		std::string uri = "ws://localhost:";
+		uri += boost::lexical_cast<std::string>(port) + "/monitor";
+
+		fpsMonitor.set_access_channels(websocketpp::log::alevel::none);
+		fpsMonitor.clear_access_channels(websocketpp::log::alevel::none);
+
+		fpsMonitor.init_asio();
+
+		fpsMonitor.set_message_handler(std::bind(&ResourceUsageRecordAssist::onMessage, this, std::placeholders::_1, std::placeholders::_2));
+
+		websocketpp::lib::error_code ec;
+		auto con = fpsMonitor.get_connection(uri, ec);
+		fpsMonitor.connect(con);
+
+		monitorThread = std::thread(&wsclient::run, &fpsMonitor);
+		monitorThread.detach();
+	}
+}
+
+void ResourceUsageRecordAssist::onMessage(websocketpp::connection_hdl hdl, message_ptr msg)
+{
+	rapidjson::Document document;
+	document.Parse(msg->get_payload().c_str());
+	auto osgIter = document.FindMember("osgFps");
+	if (osgIter != document.MemberEnd())
+	{
+		int64_t fps = osgIter->value.GetInt64();
+		InterlockedAdd64(&osgFps, fps);
+	}
+
+	auto webIter = document.FindMember("webFps");
+	if (webIter != document.MemberEnd())
+	{
+		int64_t fps = webIter->value.GetInt64();
+		InterlockedAdd64(&webFps, fps);
+	}
 }
 
 ProcessResourceUsage::ProcessResourceUsage()
@@ -111,7 +166,8 @@ ProcessResourceUsage::ProcessResourceUsage()
 ProcessResourceUsage::~ProcessResourceUsage()
 {
 	m_networkThreadStop = true;
-	m_networkThread.join();
+	if (m_networkThread.joinable())
+		m_networkThread.join();
 }
 
 ProcessResourceUsage & ProcessResourceUsage::getInstance()
@@ -210,7 +266,7 @@ std::wstring ProcessResourceUsage::detectEnvironment()
 		hDll = NULL;
 	}
 	else {
-		msg = L"ÇëÏÈ°²×°WinPcap!";
+		msg = L"è¯·å…ˆå®‰è£…WinPcap!";
 	}
 
 	return msg;
@@ -347,21 +403,8 @@ void ProcessResourceUsage::recordFps()
 				continue;
 		}
 
-		auto fpsInfo = (FpsInfo*)MapViewOfFile(assist->hFPSMapFile, FILE_MAP_READ, 0, 0, sizeof(FpsInfo));
-		if (assist->osgTime == fpsInfo->osgTime)
-			usage->osgFps = 0;
-		else {
-			usage->osgFps = fpsInfo->osgFps;
-			assist->osgTime = fpsInfo->osgTime;
-		}
-
-		if (assist->webTime == fpsInfo->webTime)
-			usage->webFps = 0;
-		else {
-			usage->webFps = fpsInfo->webFps;
-			assist->webTime = fpsInfo->webTime;
-		}
-		UnmapViewOfFile(fpsInfo);
+		usage->osgFps = InterlockedExchange64(&assist->osgFps, 0);
+		usage->webFps = InterlockedExchange64(&assist->webFps, 0);
 	}
 }
 
